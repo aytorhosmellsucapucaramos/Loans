@@ -1,0 +1,24 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav #drawer [mode]="isHandset() ? 'over' : 'side'" [opened]="!isHandset()" class="sidebar">
+    <div class="brand"><mat-icon>account_balance</mat-icon><span>Préstamos</span></div>
+    <mat-nav-list>
+      @for (item of navigation; track item.path) {
+        @if (visible(item)) {
+          <a mat-list-item [routerLink]="item.path" routerLinkActive="active" (click)="closeOnHandset(drawer)">
+            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon><span matListItemTitle>{{ item.label }}</span>
+          </a>
+        }
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar color="primary">
+      @if (isHandset()) { <button mat-icon-button (click)="drawer.toggle()" aria-label="Abrir menú"><mat-icon>menu</mat-icon></button> }
+      <span class="toolbar-spacer"></span>
+      @if (auth.user$ | async; as user) { <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span> }
+      <button mat-icon-button (click)="logout()" aria-label="Cerrar sesión"><mat-icon>logout</mat-icon></button>
+    </mat-toolbar>
+    <main class="content"><router-outlet /></main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

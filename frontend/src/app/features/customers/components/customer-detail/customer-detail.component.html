@@ -1,0 +1,6 @@
+<h2 mat-dialog-title>Información del cliente</h2>
+<mat-dialog-content class="detail">
+  <div class="identity"><strong>{{ customer.firstName }} {{ customer.lastName }}</strong><mat-chip [class.inactive]="!customer.isActive">{{ customer.isActive ? 'Activo' : 'Inactivo' }}</mat-chip></div>
+  <dl><dt>Documento</dt><dd>{{ customer.documentType }} · {{ customer.documentNumber }}</dd><dt>Teléfono</dt><dd>{{ customer.phone }}</dd><dt>Correo</dt><dd>{{ customer.email || 'No registrado' }}</dd><dt>Dirección</dt><dd>{{ customer.address }}</dd><dt>Registrado</dt><dd>{{ customer.createdAt | date:'medium' }}</dd><dt>Actualizado</dt><dd>{{ customer.updatedAt | date:'medium' }}</dd></dl>
+</mat-dialog-content>
+<mat-dialog-actions align="end"><button mat-button mat-dialog-close>Cerrar</button></mat-dialog-actions>

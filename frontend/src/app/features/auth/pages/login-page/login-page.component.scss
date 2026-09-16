@@ -1,0 +1,4 @@
+.login-page { display: grid; min-height: 100vh; padding: 1rem; place-items: center; background: linear-gradient(135deg, #eaf1ff, #f7f8fc); }
+.login-card { width: min(100%, 420px); padding: 1rem; }
+form { display: grid; gap: .5rem; margin-top: 1.5rem; }
+mat-form-field, button[type='submit'] { width: 100%; }

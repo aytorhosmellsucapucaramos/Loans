@@ -1,0 +1,11 @@
+{
+  "root": true,
+  "ignorePatterns": ["dist", "coverage"],
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "extends": ["eslint:recommended"],
+      "parserOptions": { "project": ["tsconfig.app.json", "tsconfig.spec.json"] }
+    }
+  ]
+}

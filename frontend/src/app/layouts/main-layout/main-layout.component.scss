@@ -1,0 +1,8 @@
+.shell { min-height: 100vh; }
+.sidebar { width: 256px; border-right: 0; background: #fff; }
+.brand { display: flex; align-items: center; gap: .75rem; height: 64px; padding: 0 1.25rem; color: #1d4ed8; font-size: 1.15rem; font-weight: 700; }
+.active { background: #e8f0fe; color: #1d4ed8; }
+.toolbar-spacer { flex: 1; }
+.user-name { margin-right: .5rem; font-size: .9rem; }
+.content { padding: 1.25rem; max-width: 1440px; margin: auto; }
+@media (max-width: 767px) { .content { padding: 1rem; } .user-name { display: none; } }

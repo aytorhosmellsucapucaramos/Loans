@@ -1,0 +1,4 @@
+@if (user$ | async; as user) {
+  <section class="page-header"><div><p class="eyebrow">Panel principal</p><h1>Hola, {{ user.firstName }}</h1><p>Consulta la información y administra el acceso al sistema.</p></div></section>
+  <section class="cards"><mat-card><mat-card-content><mat-icon>verified_user</mat-icon><h2>{{ user.roles.length }}</h2><p>roles asignados</p></mat-card-content></mat-card><mat-card><mat-card-content><mat-icon>key</mat-icon><h2>{{ user.permissions.length }}</h2><p>permisos activos</p></mat-card-content></mat-card><mat-card><mat-card-content><mat-icon>security</mat-icon><h2>Sesión activa</h2><p>{{ user.email }}</p></mat-card-content></mat-card></section>
+}

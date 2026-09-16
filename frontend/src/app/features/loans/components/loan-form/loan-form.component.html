@@ -1,0 +1,15 @@
+<h2 mat-dialog-title>Registrar préstamo</h2>
+<mat-dialog-content>
+  <p class="notice">El total y el cronograma serán calculados y confirmados por el backend.</p>
+  <form [formGroup]="form" class="form" (ngSubmit)="save()">
+    <mat-form-field appearance="outline" class="full"><mat-label>Cliente activo</mat-label><mat-select formControlName="customerId">@for (customer of data.customers; track customer.id) { <mat-option [value]="customer.id">{{ customer.firstName }} {{ customer.lastName }} · {{ customer.documentType }} {{ customer.documentNumber }}</mat-option> }</mat-select>@if (form.controls.customerId.touched && form.controls.customerId.invalid) { <mat-error>Selecciona un cliente.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Monto solicitado</mat-label><input matInput type="number" min="0.01" step="0.01" formControlName="principalAmount" />@if (form.controls.principalAmount.touched && form.controls.principalAmount.invalid) { <mat-error>Ingresa un monto mayor que cero.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Tasa de interés (%)</mat-label><input matInput type="number" min="0" step="0.0001" formControlName="interestRate" />@if (form.controls.interestRate.touched && form.controls.interestRate.invalid) { <mat-error>La tasa no puede ser negativa.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Frecuencia</mat-label><mat-select formControlName="paymentFrequency">@for (frequency of frequencies; track frequency.value) { <mat-option [value]="frequency.value">{{ frequency.label }}</mat-option> }</mat-select></mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Número de cuotas</mat-label><input matInput type="number" min="1" max="360" step="1" formControlName="installmentCount" />@if (form.controls.installmentCount.touched && form.controls.installmentCount.invalid) { <mat-error>Ingresa entre 1 y 360 cuotas.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Fecha de desembolso</mat-label><input matInput type="date" formControlName="disbursementDate" />@if (form.controls.disbursementDate.touched && form.controls.disbursementDate.invalid) { <mat-error>La fecha es obligatoria.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Fecha de primera cuota</mat-label><input matInput type="date" formControlName="firstInstallmentDate" />@if (form.controls.firstInstallmentDate.touched && (form.controls.firstInstallmentDate.invalid || form.hasError('firstInstallmentDate'))) { <mat-error>Debe ser posterior al desembolso.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline" class="full"><mat-label>Observaciones</mat-label><textarea matInput rows="2" maxlength="1000" formControlName="observations"></textarea></mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end"><button mat-button mat-dialog-close>Cancelar</button><button mat-flat-button color="primary" (click)="save()">Registrar préstamo</button></mat-dialog-actions>

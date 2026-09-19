@@ -17,7 +17,7 @@ Backend usa solamente `DATABASE_URL` mediante `pg.Pool`. No hay cliente Supabase
 | Capacidad | Estado |
 | --- | --- |
 | URL PostgreSQL Supabase | Compatible; copiar desde botón **Connect** del proyecto. No inventar ni reconstruir URL. |
-| SSL | Producción exige `sslmode=require`, `verify-ca` o `verify-full` en `DATABASE_URL`. `pg` procesa parámetro de URL. |
+| SSL | Producción exige `sslmode=require`, `verify-ca` o `verify-full` en `DATABASE_URL`. Para Supabase, `pg` recibe SSL explícitamente, sin cambiar TLS global. |
 | Migraciones | Seis migraciones SQL PostgreSQL, registradas transaccionalmente en `schema_migrations`. |
 | Transacciones y bloqueos | `BEGIN`/`COMMIT`/`ROLLBACK` y `FOR UPDATE`; PostgreSQL administrado los soporta. |
 | Consultas y paginación | Consultas parametrizadas, `LIMIT`/`OFFSET`; sin cambios requeridos. |
@@ -30,6 +30,7 @@ Para Render con red IPv4, preferir cadena de **Session Pooler** de Supabase indi
 1. Crear proyecto Supabase manualmente y activar MFA en cuenta administradora.
 2. En **Connect**, copiar cadena PostgreSQL adecuada; no escribir una URL manual.
 3. Guardar cadena solo como `DATABASE_URL` en variables privadas de Render. Para producción debe incluir modo SSL seguro.
+   Si Supabase provee CA, guardar PEM en `DATABASE_SSL_CA` con saltos `\n`; backend valida certificado con `rejectUnauthorized: true`.
 4. Ejecutar, una única vez por entorno nuevo:
 
    ```bash
@@ -69,6 +70,9 @@ Variables privadas requeridas:
 ```text
 NODE_ENV=production
 DATABASE_URL=<cadena copiada desde Supabase Connect con sslmode seguro>
+DATABASE_SSL_REJECT_UNAUTHORIZED=true
+# Opcional y preferido si Supabase entrega CA PEM:
+# DATABASE_SSL_CA=<PEM con saltos de línea codificados como \n>
 JWT_ACCESS_SECRET=<secreto aleatorio de al menos 32 caracteres>
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_SECRET=<secreto aleatorio de al menos 32 caracteres>
@@ -79,6 +83,14 @@ ADMIN_PASSWORD=<contraseña inicial solo para seeder controlado>
 ```
 
 `CORS_ORIGIN` acepta lista explícita separada por comas. Agregar solo origen HTTPS real del frontend y `https://localhost` para Capacitor cuando corresponda. Nunca usar `*` con credenciales.
+
+### TLS de Supabase Session Pooler
+
+`pg` configura TLS únicamente en su propio `Pool`; no se usa `NODE_TLS_REJECT_UNAUTHORIZED=0` ni se cambia HTTPS globalmente. El valor normal es `DATABASE_SSL_REJECT_UNAUTHORIZED=true`.
+
+Si Render recibe `self-signed certificate in certificate chain` y no existe CA disponible en configuración de Supabase, usar explícitamente `DATABASE_SSL_REJECT_UNAUTHORIZED=false`. Backend acepta este valor solo para hosts Supabase y solo para ese `Pool` PostgreSQL. Mantener `sslmode=require` (o superior) en `DATABASE_URL`.
+
+Riesgo: `rejectUnauthorized=false` cifra tráfico, pero no valida identidad del servidor. Aumenta riesgo de ataque de intermediario. Reemplazarlo por `DATABASE_SSL_CA` y validación activa cuando Supabase entregue CA confiable.
 
 ## Seguridad y operación
 

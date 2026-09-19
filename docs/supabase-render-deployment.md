@@ -57,7 +57,7 @@ Crear manualmente Web Service desde repositorio. No desplegar todavía.
 | Campo | Valor |
 | --- | --- |
 | Root directory | `.` si repositorio abre directamente este monorepo; usar `sistema-prestamos` solo si existe como subcarpeta del repositorio conectado. |
-| Build Command | `npm ci && npm run build --workspace=@sistema-prestamos/backend` |
+| Build Command | `npm ci --include=dev && npm run build --workspace=@sistema-prestamos/backend` |
 | Start Command | `npm run start --workspace=@sistema-prestamos/backend` |
 | Migraciones | Ejecutar una vez: `npm run db:migrate --workspace=@sistema-prestamos/backend` |
 | Health Check Path | `/api/health` |

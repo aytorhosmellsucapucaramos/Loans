@@ -17,6 +17,13 @@ describe('LoanFormComponent', () => {
       ],
     }).compileComponents();
     const component = TestBed.createComponent(LoanFormComponent).componentInstance;
+    expect(component.form.controls.principalAmount.value).toBeNull();
+    expect(component.form.controls.installmentCount.value).toBeNull();
+    expect(component.form.invalid).toBeTrue();
+    component.form.controls.principalAmount.setValue(0);
+    component.form.controls.installmentCount.setValue(0);
+    expect(component.form.controls.principalAmount.invalid).toBeTrue();
+    expect(component.form.controls.installmentCount.invalid).toBeTrue();
     component.form.setValue({ customerId: 'customer-1', principalAmount: 1000, interestRate: 10, paymentFrequency: 'monthly', installmentCount: 4, disbursementDate: '2026-09-15', firstInstallmentDate: '2026-10-15', observations: '' });
     component.save();
     expect(dialogRef.close).toHaveBeenCalledWith(jasmine.objectContaining({ customerId: 'customer-1', interestType: 'simple', principalAmount: 1000 }));

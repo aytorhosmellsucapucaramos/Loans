@@ -1,1 +1,26 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing'; import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing'; import { RouterTestingModule } from '@angular/router/testing'; import { CashHistoryPageComponent } from './cash-history-page.component'; describe('CashHistoryPageComponent', () => { let fixture: ComponentFixture<CashHistoryPageComponent>; let http: HttpTestingController; beforeEach(async () => { await TestBed.configureTestingModule({ imports: [CashHistoryPageComponent, HttpClientTestingModule, RouterTestingModule] }).compileComponents(); http = TestBed.inject(HttpTestingController); fixture = TestBed.createComponent(CashHistoryPageComponent); fixture.detectChanges(); }); afterEach(() => http.verify()); it('carga el historial', () => { const req = http.expectOne((request) => request.url === '/api/cash/history'); req.flush({ success: true, data: { items: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 } }, errors: [] }); expect(fixture.componentInstance.sessions()).toEqual([]); }); });
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { CashHistoryPageComponent } from './cash-history-page.component';
+describe('CashHistoryPageComponent', () => {
+  let fixture: ComponentFixture<CashHistoryPageComponent>;
+  let http: HttpTestingController;
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [CashHistoryPageComponent, HttpClientTestingModule, RouterTestingModule],
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(CashHistoryPageComponent);
+    fixture.detectChanges();
+  });
+  afterEach(() => http.verify());
+  it('carga el historial', () => {
+    const req = http.expectOne((request) => request.url.endsWith('/api/cash/history'));
+    req.flush({
+      success: true,
+      data: { items: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 } },
+      errors: [],
+    });
+    expect(fixture.componentInstance.sessions()).toEqual([]);
+  });
+});

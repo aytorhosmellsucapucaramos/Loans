@@ -51,14 +51,14 @@ export class PaymentFormComponent {
   readonly methods: { value: PaymentMethod; label: string }[] = [
     { value: 'cash', label: 'Efectivo' }, { value: 'bank_transfer', label: 'Transferencia bancaria' }, { value: 'yape', label: 'Yape' }, { value: 'plin', label: 'Plin' }, { value: 'other', label: 'Otro' },
   ];
-  readonly form = this.builder.nonNullable.group({
-    loanId: [this.data.loan?.id ?? '', Validators.required],
-    installmentId: [this.data.installment?.id ?? '', Validators.required],
-    amount: [0, [Validators.required, Validators.min(0.01), Validators.pattern(/^\d+(?:\.\d{1,2})?$/)]],
-    paymentMethod: ['cash' as PaymentMethod, Validators.required],
-    paymentDate: [today(), Validators.required],
-    operationReference: ['', Validators.maxLength(120)],
-    observations: ['', Validators.maxLength(1000)],
+  readonly form = this.builder.group({
+    loanId: this.builder.nonNullable.control(this.data.loan?.id ?? '', Validators.required),
+    installmentId: this.builder.nonNullable.control(this.data.installment?.id ?? '', Validators.required),
+    amount: this.builder.control<number | null>(null, [Validators.required, Validators.min(0.01), Validators.pattern(/^\d+(?:\.\d{1,2})?$/)]),
+    paymentMethod: this.builder.nonNullable.control('cash' as PaymentMethod, Validators.required),
+    paymentDate: this.builder.nonNullable.control(today(), Validators.required),
+    operationReference: this.builder.nonNullable.control('', Validators.maxLength(120)),
+    observations: this.builder.nonNullable.control('', Validators.maxLength(1000)),
   });
 
   constructor() {
@@ -75,6 +75,7 @@ export class PaymentFormComponent {
   save(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const value = this.form.getRawValue();
+    if (value.amount === null) return;
     const selected = this.selectedInstallment();
     if (!selected || Number(value.amount) > Number(selected.outstandingAmount)) {
       this.form.controls.amount.setErrors({ exceedsOutstanding: true }); this.form.controls.amount.markAsTouched(); return;

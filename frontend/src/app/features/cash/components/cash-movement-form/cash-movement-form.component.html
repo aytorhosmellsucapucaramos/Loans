@@ -1,1 +1,30 @@
-<h2 mat-dialog-title>{{ isExpense ? 'Registrar egreso' : 'Registrar ingreso' }}</h2><mat-dialog-content><form [formGroup]="form" class="form"><mat-form-field appearance="outline"><mat-label>Monto</mat-label><input matInput type="number" min="0.01" step="0.01" formControlName="amount" />@if (form.controls.amount.touched && form.controls.amount.invalid) { <mat-error>Ingresa un monto mayor que cero.</mat-error> }</mat-form-field><mat-form-field appearance="outline"><mat-label>Método</mat-label><mat-select formControlName="paymentMethod">@for (method of methods; track method.value) { <mat-option [value]="method.value">{{ method.label }}</mat-option> }</mat-select></mat-form-field><mat-form-field appearance="outline" class="full"><mat-label>Descripción</mat-label><textarea matInput rows="3" maxlength="500" formControlName="description"></textarea>@if (form.controls.description.touched && form.controls.description.invalid) { <mat-error>Describe el movimiento (mínimo 3 caracteres).</mat-error> }</mat-form-field></form></mat-dialog-content><mat-dialog-actions align="end"><button mat-button mat-dialog-close>Cancelar</button><button mat-flat-button [color]="isExpense ? 'warn' : 'primary'" (click)="save()">{{ isExpense ? 'Registrar egreso' : 'Registrar ingreso' }}</button></mat-dialog-actions>
+<h2 mat-dialog-title>{{ isExpense ? 'Registrar egreso' : 'Registrar ingreso' }}</h2>
+<mat-dialog-content
+  ><form [formGroup]="form" class="form">
+    <mat-form-field appearance="outline"
+      ><mat-label>Monto</mat-label
+      ><input matInput type="number" min="0.01" step="0.01" placeholder="Ej.: 100.00" formControlName="amount" />
+      @if (form.controls.amount.touched && form.controls.amount.invalid) {
+        <mat-error>Ingresa un monto mayor que cero.</mat-error>
+      }</mat-form-field
+    ><mat-form-field appearance="outline"
+      ><mat-label>Método</mat-label
+      ><mat-select formControlName="paymentMethod">
+        @for (method of methods; track method.value) {
+          <mat-option [value]="method.value">{{ method.label }}</mat-option>
+        }
+      </mat-select></mat-form-field
+    ><mat-form-field appearance="outline" class="full"
+      ><mat-label>Descripción</mat-label
+      ><textarea matInput rows="3" maxlength="500" formControlName="description"></textarea>
+      @if (form.controls.description.touched && form.controls.description.invalid) {
+        <mat-error>Describe el movimiento (mínimo 3 caracteres).</mat-error>
+      }
+    </mat-form-field>
+  </form></mat-dialog-content
+><mat-dialog-actions align="end"
+  ><button mat-button mat-dialog-close>Cancelar</button
+  ><button mat-flat-button [color]="isExpense ? 'warn' : 'primary'" (click)="save()">
+    {{ isExpense ? 'Registrar egreso' : 'Registrar ingreso' }}
+  </button></mat-dialog-actions
+>

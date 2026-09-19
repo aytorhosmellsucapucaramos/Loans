@@ -31,20 +31,21 @@ export class LoanFormComponent {
   readonly frequencies: { value: PaymentFrequency; label: string }[] = [
     { value: 'daily', label: 'Diaria' }, { value: 'weekly', label: 'Semanal' }, { value: 'biweekly', label: 'Quincenal' }, { value: 'monthly', label: 'Mensual' },
   ];
-  readonly form = this.builder.nonNullable.group({
-    customerId: ['', Validators.required],
-    principalAmount: [0, [Validators.required, Validators.min(0.01)]],
-    interestRate: [0, [Validators.required, Validators.min(0)]],
-    paymentFrequency: ['monthly' as PaymentFrequency, Validators.required],
-    installmentCount: [1, [Validators.required, Validators.min(1), Validators.max(360), Validators.pattern(/^\d+$/)]],
-    disbursementDate: ['', Validators.required],
-    firstInstallmentDate: ['', Validators.required],
-    observations: ['', Validators.maxLength(1000)],
+  readonly form = this.builder.group({
+    customerId: this.builder.nonNullable.control('', Validators.required),
+    principalAmount: this.builder.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
+    interestRate: this.builder.control<number | null>(null, [Validators.required, Validators.min(0)]),
+    paymentFrequency: this.builder.nonNullable.control('monthly' as PaymentFrequency, Validators.required),
+    installmentCount: this.builder.control<number | null>(null, [Validators.required, Validators.min(1), Validators.max(360), Validators.pattern(/^\d+$/)]),
+    disbursementDate: this.builder.nonNullable.control('', Validators.required),
+    firstInstallmentDate: this.builder.nonNullable.control('', Validators.required),
+    observations: this.builder.nonNullable.control('', Validators.maxLength(1000)),
   }, { validators: dateOrderValidator });
 
   save(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const value = this.form.getRawValue();
+    if (value.principalAmount === null || value.interestRate === null || value.installmentCount === null) return;
     const payload: CreateLoanPayload = {
       customerId: value.customerId, principalAmount: value.principalAmount, interestRate: value.interestRate, interestType: 'simple', paymentFrequency: value.paymentFrequency,
       installmentCount: value.installmentCount, disbursementDate: value.disbursementDate, firstInstallmentDate: value.firstInstallmentDate,

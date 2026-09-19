@@ -1,0 +1,5 @@
+.filters { display:grid; grid-template-columns:repeat(4,minmax(180px,1fr)); gap:.25rem 1rem; align-items:start; margin-bottom:1rem; }
+.actions { display:flex; gap:.5rem; align-items:center; min-height:56px; }
+.error { grid-column:1/-1; color:#b3261e; margin:0; font-size:.85rem; }
+@media (max-width:900px) { .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:600px) { .filters { grid-template-columns:1fr; } .actions { min-height:auto; } .actions button { flex:1; } }

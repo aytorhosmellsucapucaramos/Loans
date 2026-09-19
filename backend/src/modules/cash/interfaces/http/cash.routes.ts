@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import Joi from 'joi';
+import type { AppContainer } from '../../../../shared/container/container.js';
+import { AppError } from '../../../../shared/errors/app-error.js';
+import { asyncHandler } from '../../../../shared/http/async-handler.js';
+import { stringParam } from '../../../../shared/http/params.js';
+import { validateBody } from '../../../../shared/http/validate-body.js';
+import { authenticate, requirePermission } from '../../../auth/interfaces/http/auth.middleware.js';
+import { CashController } from './cash.controller.js';
+import { cashMovementSchema, closeCashSchema, openCashSchema, validateCashQuery } from './cash.validator.js';
+const validateId = (value: string): void => { if (Joi.string().uuid().validate(value).error) throw new AppError(400, 'VALIDATION_ERROR', 'El identificador no es válido.'); };
+export const cashRouter = (container: AppContainer): Router => { const router = Router(); const controller = new CashController(container); router.use(authenticate(container.tokenService, container.users)); router.get('/current', requirePermission('cash.read'), asyncHandler(controller.current)); router.get('/history', requirePermission('cash.read'), validateCashQuery, asyncHandler(controller.history)); router.post('/open', requirePermission('cash.open'), validateBody(openCashSchema), asyncHandler(controller.open)); router.post('/:id/income', requirePermission('cash.movement.create'), validateBody(cashMovementSchema), asyncHandler((req,res,next) => { validateId(stringParam(req.params.id,'id')); return controller.income(req,res,next); })); router.post('/:id/expense', requirePermission('cash.movement.create'), validateBody(cashMovementSchema), asyncHandler((req,res,next) => { validateId(stringParam(req.params.id,'id')); return controller.expense(req,res,next); })); router.get('/:id/movements', requirePermission('cash.read'), asyncHandler((req,res,next) => { validateId(stringParam(req.params.id,'id')); return controller.movements(req,res,next); })); router.post('/:id/close', requirePermission('cash.close'), validateBody(closeCashSchema), asyncHandler((req,res,next) => { validateId(stringParam(req.params.id,'id')); return controller.close(req,res,next); })); return router; };

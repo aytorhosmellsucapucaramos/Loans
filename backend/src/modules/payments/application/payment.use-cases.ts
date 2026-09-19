@@ -33,7 +33,7 @@ export class RegisterPaymentUseCase {
       ...input, amount: centsToAmount(amount), operationReference: input.operationReference?.trim() || null,
       observations: input.observations?.trim() || null, registeredByUserId: actorId,
     });
-    this.audit.record('payment.registered', actorId, payment.data.id);
+    await this.audit.record('payment.registered', actorId, payment.data.id);
     return payment.data;
   }
 }
@@ -41,8 +41,8 @@ export class RegisterPaymentUseCase {
 export class CancelPaymentUseCase {
   constructor(private readonly payments: PaymentRepository, private readonly audit: PaymentAuditLogger) {}
   async execute(id: string, actorId: string): Promise<PaymentData> {
-    const payment = await this.payments.cancel(id);
-    this.audit.record('payment.cancelled', actorId, payment.data.id);
+    const payment = await this.payments.cancel(id, actorId);
+    await this.audit.record('payment.cancelled', actorId, payment.data.id);
     return payment.data;
   }
 }

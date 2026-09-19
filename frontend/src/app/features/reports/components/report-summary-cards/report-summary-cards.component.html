@@ -1,0 +1,1 @@
+<section class="cards">@for (card of cards; track card.label) { <mat-card><mat-card-content><span>{{ card.label }}</span><strong>{{ card.money ? (card.value | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE') : card.value }}</strong></mat-card-content></mat-card> }</section>

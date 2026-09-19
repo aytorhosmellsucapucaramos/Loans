@@ -1,0 +1,14 @@
+import type { RequestHandler } from 'express';
+import Joi from 'joi';
+import { AppError } from '../../../../shared/errors/app-error.js';
+import { loanStatuses } from '../../../loans/domain/loan.js';
+import { cashSessionStatuses } from '../../../cash/domain/cash-session.js';
+const validCalendarDate = (value: string): boolean => { const [yearPart, monthPart, dayPart] = value.split('-'); const year = Number(yearPart ?? NaN); const month = Number(monthPart ?? NaN); const day = Number(dayPart ?? NaN); const parsed = new Date(Date.UTC(year, month - 1, day)); return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day; };
+const date = Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).custom((value: string, helpers) => validCalendarDate(value) ? value : helpers.error('any.invalid')).messages({ 'any.invalid': 'La fecha no es válida.' });
+const pagination = { page: Joi.number().integer().min(1).default(1), pageSize: Joi.number().integer().min(1).max(100).default(20) };
+const range = (shape: Record<string, Joi.Schema>) => Joi.object({ ...pagination, fromDate: date.optional(), toDate: date.optional(), ...shape }).custom((value: { fromDate?: string; toDate?: string }, helpers) => !value.fromDate || !value.toDate || value.fromDate <= value.toDate ? value : helpers.error('any.invalid')).messages({ 'any.invalid': 'La fecha inicial no puede ser posterior a la fecha final.' });
+export const loanReportQuerySchema = range({ customerId: Joi.string().uuid().optional(), status: Joi.string().valid(...loanStatuses).optional() });
+export const installmentReportQuerySchema = range({ status: Joi.string().valid('pending', 'paid', 'overdue').optional() });
+export const collectionReportQuerySchema = range({});
+export const cashReportQuerySchema = range({ cashSessionId: Joi.string().uuid().optional(), status: Joi.string().valid(...cashSessionStatuses).optional() });
+export const validateReportQuery = (target: string, schema: Joi.ObjectSchema): RequestHandler => (request, response, next) => { const result = schema.validate(request.query, { abortEarly: false, stripUnknown: true, convert: true }); if (result.error) return next(new AppError(400, 'VALIDATION_ERROR', 'Los parámetros enviados no son válidos.', result.error.details.map((detail) => ({ field: detail.path.join('.'), message: detail.message })))); response.locals[target] = result.value; next(); };

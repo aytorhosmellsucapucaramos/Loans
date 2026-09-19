@@ -1,0 +1,8 @@
+.table-container { overflow:auto; background:#fff; border-radius:12px; }
+table { width:100%; min-width:1080px; }
+td, th { vertical-align:top; padding-top:.8rem; padding-bottom:.8rem; }
+small { display:block; color:#5f6368; margin-top:.2rem; }
+code { color:#354a67; font-size:.82rem; }
+.entity-id { display:block; max-width:180px; overflow-wrap:anywhere; }
+mat-chip.success { background:#e6f4ea; color:#137333; }
+mat-chip.failure { background:#fce8e6; color:#b3261e; }

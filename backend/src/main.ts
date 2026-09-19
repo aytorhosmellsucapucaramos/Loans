@@ -5,7 +5,8 @@ import { createContainer } from './shared/container/container.js';
 import { logger } from './shared/logging/logger.js';
 
 const app = createApp(createContainer());
-const server = app.listen(env.port, () => logger.info({ port: env.port }, 'API iniciada'));
+const host = '0.0.0.0';
+const server = app.listen(env.port, host, () => logger.info({ port: env.port, host }, 'API iniciada'));
 
 const shutdown = (signal: string): void => {
   logger.info({ signal }, 'Cerrando API');

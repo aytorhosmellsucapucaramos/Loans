@@ -46,7 +46,7 @@ export class CreateCustomerUseCase {
     const existing = await this.customers.findByDocument(normalized.documentType, normalized.documentNumber);
     if (existing) throw new AppError(409, 'DOCUMENT_ALREADY_EXISTS', 'El tipo y número de documento ya están registrados.');
     const customer = await this.customers.create(normalized);
-    this.audit.record('customer.created', actorId, customer.data.id);
+    await this.audit.record('customer.created', actorId, customer.data.id);
     return toData(customer);
   }
 }
@@ -62,7 +62,7 @@ export class UpdateCustomerUseCase {
     if (existing) throw new AppError(409, 'DOCUMENT_ALREADY_EXISTS', 'El tipo y número de documento ya están registrados.');
     const customer = await this.customers.update(id, normalized);
     if (!customer) throw notFound('Cliente');
-    this.audit.record('customer.updated', actorId, customer.data.id);
+    await this.audit.record('customer.updated', actorId, customer.data.id);
     return toData(customer);
   }
 }
@@ -73,7 +73,7 @@ export class SetCustomerStatusUseCase {
   async execute(id: string, isActive: boolean, actorId: string): Promise<CustomerData> {
     const customer = await this.customers.updateStatus(id, isActive);
     if (!customer) throw notFound('Cliente');
-    this.audit.record('customer.status_changed', actorId, customer.data.id);
+    await this.audit.record('customer.status_changed', actorId, customer.data.id);
     return toData(customer);
   }
 }

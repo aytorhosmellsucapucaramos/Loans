@@ -55,7 +55,7 @@ export class CreateLoanUseCase {
       totalAmount: centsToAmount(generated.totalAmountCents),
       observations: input.observations?.trim() || null,
     }, generated.installments);
-    this.audit.record('loan.created', actorId, loan.data.id);
+    await this.audit.record('loan.created', actorId, loan.data.id);
     return toData(loan);
   }
 }
@@ -65,7 +65,7 @@ export class SetLoanStatusUseCase {
   async execute(id: string, status: LoanStatus, actorId: string): Promise<LoanData> {
     const loan = await this.loans.updateStatus(id, status);
     if (!loan) throw notFound('Préstamo');
-    this.audit.record('loan.status_changed', actorId, loan.data.id);
+    await this.audit.record('loan.status_changed', actorId, loan.data.id);
     return toData(loan);
   }
 }

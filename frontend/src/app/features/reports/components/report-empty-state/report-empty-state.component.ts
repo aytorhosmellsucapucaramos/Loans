@@ -1,0 +1,2 @@
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core'; import { MatIconModule } from '@angular/material/icon';
+@Component({selector:'sp-report-empty-state',imports:[MatIconModule],template:'<div class="empty"><mat-icon>analytics</mat-icon><span>{{ message }}</span></div>',styleUrl:'./report-empty-state.component.scss',changeDetection:ChangeDetectionStrategy.OnPush}) export class ReportEmptyStateComponent { @Input() message='No se encontraron datos para los filtros seleccionados.'; }

@@ -31,6 +31,10 @@ export class MainLayoutComponent {
     { label: 'Roles y permisos', icon: 'admin_panel_settings', path: '/access-control', permission: 'roles.read' },
     { label: 'Clientes', icon: 'groups', path: '/customers', permission: 'customers.read' },
     { label: 'Préstamos', icon: 'account_balance_wallet', path: '/loans', permission: 'loans.read' },
+    { label: 'Pagos', icon: 'payments', path: '/payments', permission: 'payments.read' },
+    { label: 'Caja', icon: 'point_of_sale', path: '/cash', permission: 'cash.read' },
+    { label: 'Reportes', icon: 'analytics', path: '/reports', permission: 'reports.read' },
+    { label: 'Auditoría', icon: 'history', path: '/audit', permission: 'audit.read' },
   ];
 
   visible(item: NavigationItem): boolean { return !item.permission || this.auth.hasPermission(item.permission); }

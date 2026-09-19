@@ -1,0 +1,8 @@
+import { AppError } from '../../../shared/errors/app-error.js';
+import type { CashReport, CashReportCriteria, CollectionReport, CollectionReportCriteria, InstallmentReport, InstallmentReportCriteria, LoanReport, LoanReportCriteria, ReportRepository, SystemSummary } from '../domain/report-repository.js';
+const validateRange = <T extends { fromDate?: string; toDate?: string }>(criteria: T): T => { if (criteria.fromDate && criteria.toDate && criteria.fromDate > criteria.toDate) throw new AppError(400, 'INVALID_DATE_RANGE', 'La fecha inicial no puede ser posterior a la fecha final.'); return criteria; };
+export class GetSystemSummaryUseCase { constructor(private readonly reports: ReportRepository) {} async execute(): Promise<SystemSummary> { return this.reports.getSummary(); } }
+export class GetLoanReportUseCase { constructor(private readonly reports: ReportRepository) {} async execute(criteria: LoanReportCriteria): Promise<LoanReport> { return this.reports.getLoans(validateRange(criteria)); } }
+export class GetInstallmentReportUseCase { constructor(private readonly reports: ReportRepository) {} async execute(criteria: InstallmentReportCriteria): Promise<InstallmentReport> { return this.reports.getInstallments(validateRange(criteria)); } }
+export class GetCollectionReportUseCase { constructor(private readonly reports: ReportRepository) {} async execute(criteria: CollectionReportCriteria): Promise<CollectionReport> { return this.reports.getCollections(validateRange(criteria)); } }
+export class GetCashReportUseCase { constructor(private readonly reports: ReportRepository) {} async execute(criteria: CashReportCriteria): Promise<CashReport> { return this.reports.getCash(validateRange(criteria)); } }

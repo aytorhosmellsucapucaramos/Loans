@@ -1,6 +1,7 @@
 import { notFound } from '../../../shared/errors/app-error.js';
 import type { UpdateUserInput, UserRepository } from '../domain/user-repository.js';
 import type { PublicUser } from '../domain/user.js';
+import type { UserAuditLogger } from '../domain/user-audit-logger.js';
 
 export class ListUsersUseCase {
   constructor(private readonly users: UserRepository) {}
@@ -19,10 +20,11 @@ export class GetUserUseCase {
 }
 
 export class UpdateUserUseCase {
-  constructor(private readonly users: UserRepository) {}
-  async execute(id: string, input: UpdateUserInput): Promise<PublicUser> {
+  constructor(private readonly users: UserRepository, private readonly audit: UserAuditLogger) {}
+  async execute(id: string, input: UpdateUserInput, actorId: string): Promise<PublicUser> {
     const user = await this.users.update(id, input);
     if (!user) throw notFound('Usuario');
+    await this.audit.record('user.updated', actorId, user.id);
     return user.toPublic();
   }
 }

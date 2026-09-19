@@ -20,6 +20,12 @@ const permissions = [
   ['payments.read', 'Consultar pagos'],
   ['payments.create', 'Registrar pagos'],
   ['payments.cancel', 'Anular pagos'],
+  ['cash.read', 'Consultar cajas y movimientos'],
+  ['cash.open', 'Abrir caja'],
+  ['cash.movement.create', 'Registrar movimientos de caja'],
+  ['cash.close', 'Cerrar caja'],
+  ['reports.read', 'Consultar reportes'],
+  ['audit.read', 'Consultar auditoría'],
 ] as const;
 
 const run = async (): Promise<void> => {

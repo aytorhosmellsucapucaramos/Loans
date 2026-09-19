@@ -1,0 +1,11 @@
+import type { RequestHandler } from 'express';
+import Joi from 'joi';
+import { AppError } from '../../../../shared/errors/app-error.js';
+import { cashMovementMethods } from '../../domain/cash-movement.js';
+import { cashSessionStatuses } from '../../domain/cash-session.js';
+const amount = Joi.alternatives().try(Joi.number().precision(2).greater(0), Joi.string().trim().pattern(/^\d+(?:\.\d{1,2})?$/)).required();
+export const openCashSchema = Joi.object({ openingAmount: amount, observations: Joi.string().trim().max(1000).allow('').optional() });
+export const cashMovementSchema = Joi.object({ amount, paymentMethod: Joi.string().valid(...cashMovementMethods).required(), description: Joi.string().trim().min(3).max(500).required() });
+export const closeCashSchema = Joi.object({ declaredClosingAmount: amount, observations: Joi.string().trim().max(1000).allow('').optional() });
+export const cashHistoryQuerySchema = Joi.object({ page: Joi.number().integer().min(1).default(1), pageSize: Joi.number().integer().min(1).max(100).default(20), status: Joi.string().valid(...cashSessionStatuses).optional(), userId: Joi.string().uuid().optional() });
+export const validateCashQuery: RequestHandler = (request, response, next) => { const result = cashHistoryQuerySchema.validate(request.query, { abortEarly: false, stripUnknown: true, convert: true }); if (result.error) return next(new AppError(400, 'VALIDATION_ERROR', 'Los parámetros enviados no son válidos.', result.error.details.map((detail) => ({ field: detail.path.join('.'), message: detail.message })))); response.locals.cashHistoryQuery = result.value; next(); };

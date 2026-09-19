@@ -7,13 +7,18 @@ import { Loan, type LoanData, type LoanStatus } from '../domain/loan.js';
 type LoanRow = {
   id: string; customer_id: string; principal_amount: string; interest_rate: string; interest_type: 'simple'; payment_frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   installment_count: number; disbursement_date: Date | string; first_installment_date: Date | string; total_amount: string; status: LoanStatus; observations: string | null; created_at: Date; updated_at: Date;
+  customer_first_name?: string; customer_last_name?: string; customer_document_type?: string; customer_document_number?: string;
 };
 
 const dateOnly = (value: Date | string): string => value instanceof Date ? value.toISOString().slice(0, 10) : value.slice(0, 10);
 const mapRow = (row: LoanRow): Loan => new Loan({
   id: row.id, customerId: row.customer_id, principalAmount: row.principal_amount, interestRate: row.interest_rate, interestType: row.interest_type,
   paymentFrequency: row.payment_frequency, installmentCount: row.installment_count, disbursementDate: dateOnly(row.disbursement_date), firstInstallmentDate: dateOnly(row.first_installment_date),
-  totalAmount: row.total_amount, status: row.status, observations: row.observations, createdAt: row.created_at, updatedAt: row.updated_at,
+  totalAmount: row.total_amount, status: row.status, observations: row.observations,
+  customer: row.customer_first_name && row.customer_last_name && row.customer_document_type && row.customer_document_number ? {
+    id: row.customer_id, firstName: row.customer_first_name, lastName: row.customer_last_name, documentType: row.customer_document_type, documentNumber: row.customer_document_number,
+  } : undefined,
+  createdAt: row.created_at, updatedAt: row.updated_at,
 } satisfies LoanData);
 
 export class PostgresLoanRepository implements LoanRepository {
@@ -42,7 +47,11 @@ export class PostgresLoanRepository implements LoanRepository {
   }
 
   async findById(id: string): Promise<Loan | null> {
-    const result = await this.database.query<LoanRow>('SELECT * FROM loans WHERE id = $1 LIMIT 1', [id]);
+    const result = await this.database.query<LoanRow>(
+      `SELECT l.*, c.first_name AS customer_first_name, c.last_name AS customer_last_name,
+        c.document_type AS customer_document_type, c.document_number AS customer_document_number
+       FROM loans l JOIN customers c ON c.id = l.customer_id WHERE l.id = $1 LIMIT 1`, [id],
+    );
     return result.rows[0] ? mapRow(result.rows[0]) : null;
   }
 
@@ -60,7 +69,7 @@ export class PostgresLoanRepository implements LoanRepository {
     const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const offset = (criteria.page - 1) * criteria.pageSize;
     const [items, count] = await Promise.all([
-      this.database.query<LoanRow>(`SELECT l.* FROM loans l JOIN customers c ON c.id = l.customer_id ${condition} ORDER BY l.created_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`, [...values, criteria.pageSize, offset]),
+      this.database.query<LoanRow>(`SELECT l.*, c.first_name AS customer_first_name, c.last_name AS customer_last_name, c.document_type AS customer_document_type, c.document_number AS customer_document_number FROM loans l JOIN customers c ON c.id = l.customer_id ${condition} ORDER BY l.created_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`, [...values, criteria.pageSize, offset]),
       this.database.query<{ total: string }>(`SELECT COUNT(*)::text AS total FROM loans l JOIN customers c ON c.id = l.customer_id ${condition}`, values),
     ]);
     const total = Number(count.rows[0]?.total ?? 0);

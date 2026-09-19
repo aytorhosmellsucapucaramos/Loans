@@ -1,0 +1,6 @@
+.page-header { display:flex; justify-content:space-between; align-items:end; gap:1rem; margin-bottom:1rem; }
+.eyebrow { color:#1d4ed8; font-weight:600; margin:0 0 .25rem; }
+h1 { margin:0; }.page-header p:last-child { color:#5f6368; margin-bottom:0; }
+mat-paginator { background:#fff; border-radius:0 0 12px 12px; }
+.state { min-height:260px; display:grid; place-content:center; justify-items:center; gap:1rem; color:#5f6368; text-align:center; }.error { color:#b3261e; }
+@media (max-width:600px) { .page-header { align-items:stretch; flex-direction:column; }.page-header button { width:100%; } }

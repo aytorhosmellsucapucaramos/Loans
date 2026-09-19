@@ -1,0 +1,8 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import type { ApiResponse } from '../../../core/models/api-response.model';
+import type { BaseReportQuery, CashReport, CashReportQuery, CollectionReport, InstallmentReport, InstallmentReportQuery, LoanReport, LoanReportQuery, SystemSummary } from '../models/report.model';
+@Injectable({ providedIn: 'root' })
+export class ReportsService { private readonly http = inject(HttpClient); private readonly endpoint = `${environment.apiUrl}/reports`; summary(): Observable<SystemSummary> { return this.http.get<ApiResponse<SystemSummary>>(`${this.endpoint}/summary`).pipe(map((response) => response.data)); } loans(query: LoanReportQuery): Observable<LoanReport> { return this.get<LoanReport>('loans', query); } installments(query: InstallmentReportQuery): Observable<InstallmentReport> { return this.get<InstallmentReport>('installments', query); } collections(query: BaseReportQuery): Observable<CollectionReport> { return this.get<CollectionReport>('collections', query); } cash(query: CashReportQuery): Observable<CashReport> { return this.get<CashReport>('cash', query); } private get<T>(path: string, query: object): Observable<T> { let params = new HttpParams(); for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== '') params = params.set(key, String(value)); return this.http.get<ApiResponse<T>>(`${this.endpoint}/${path}`, { params }).pipe(map((response) => response.data)); } }

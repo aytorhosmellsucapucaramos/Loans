@@ -1,0 +1,2 @@
+import { CurrencyPipe } from '@angular/common'; import { ChangeDetectionStrategy, Component, Input } from '@angular/core'; import { MatCardModule } from '@angular/material/card';
+@Component({ selector:'sp-report-summary-cards', imports:[CurrencyPipe,MatCardModule], templateUrl:'./report-summary-cards.component.html', styleUrl:'./report-summary-cards.component.scss', changeDetection:ChangeDetectionStrategy.OnPush }) export class ReportSummaryCardsComponent { @Input({required:true}) cards: {label:string;value:string|number;money?:boolean}[]=[]; }

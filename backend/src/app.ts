@@ -13,6 +13,9 @@ import { customerRouter } from './modules/customers/interfaces/http/customer.rou
 import { installmentRouter } from './modules/installments/interfaces/http/installment.routes.js';
 import { loanRouter } from './modules/loans/interfaces/http/loan.routes.js';
 import { installmentPaymentRouter, loanPaymentRouter, paymentRouter } from './modules/payments/interfaces/http/payment.routes.js';
+import { cashRouter } from './modules/cash/interfaces/http/cash.routes.js';
+import { reportRouter } from './modules/reports/interfaces/http/report.routes.js';
+import { auditRouter } from './modules/audit/interfaces/http/audit.routes.js';
 import type { AppContainer } from './shared/container/container.js';
 import { errorHandler, notFoundHandler } from './shared/http/error-handler.js';
 import { success } from './shared/http/api-response.js';
@@ -23,7 +26,10 @@ export const createApp = (container: AppContainer): Express => {
   app.disable('x-powered-by');
   app.use(pinoHttp({ logger, genReqId: () => randomUUID() }));
   app.use(helmet());
-  app.use(cors({ origin: env.corsOrigin, credentials: true }));
+  app.use(cors({
+    origin: (origin, callback) => callback(null, origin === undefined || env.corsOrigins.includes(origin)),
+    credentials: true,
+  }));
   app.use(express.json({ limit: '100kb' }));
   app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 100, standardHeaders: 'draft-8', legacyHeaders: false }));
 
@@ -37,6 +43,9 @@ export const createApp = (container: AppContainer): Express => {
   app.use('/api/installments', installmentRouter(container));
   app.use('/api/installments', installmentPaymentRouter(container));
   app.use('/api/payments', paymentRouter(container));
+  app.use('/api/cash', cashRouter(container));
+  app.use('/api/reports', reportRouter(container));
+  app.use('/api/audit', auditRouter(container));
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;

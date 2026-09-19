@@ -22,6 +22,15 @@ import { PostgresLoanRepository } from '../../modules/loans/infrastructure/postg
 import { CancelPaymentUseCase, GetPaymentUseCase, ListInstallmentPaymentsUseCase, ListLoanPaymentsUseCase, ListPaymentsUseCase, RegisterPaymentUseCase } from '../../modules/payments/application/payment.use-cases.js';
 import { PinoPaymentAuditLogger } from '../../modules/payments/infrastructure/pino-payment-audit-logger.js';
 import { PostgresPaymentRepository } from '../../modules/payments/infrastructure/postgres-payment.repository.js';
+import { PostgresCashRepository } from '../../modules/cash/infrastructure/postgres-cash.repository.js';
+import { PinoCashAuditLogger } from '../../modules/cash/infrastructure/pino-cash-audit-logger.js';
+import { CloseCashSessionUseCase, CreateCashMovementUseCase, GetCurrentCashSessionUseCase, ListCashHistoryUseCase, ListCashMovementsUseCase, OpenCashSessionUseCase } from '../../modules/cash/application/cash.use-cases.js';
+import { PostgresReportRepository } from '../../modules/reports/infrastructure/postgres-report.repository.js';
+import { GetCashReportUseCase, GetCollectionReportUseCase, GetInstallmentReportUseCase, GetLoanReportUseCase, GetSystemSummaryUseCase } from '../../modules/reports/application/report.use-cases.js';
+import { ListAuditLogsUseCase } from '../../modules/audit/application/audit.use-cases.js';
+import { PostgresAuditRepository } from '../../modules/audit/infrastructure/postgres-audit.repository.js';
+import { PinoUserAuditLogger } from '../../modules/users/infrastructure/pino-user-audit-logger.js';
+import { PinoAccessControlAuditLogger } from '../../modules/access-control/infrastructure/pino-access-control-audit-logger.js';
 
 export const createContainer = (database: Pool = pool) => {
   const users = new PostgresUserRepository(database);
@@ -29,10 +38,16 @@ export const createContainer = (database: Pool = pool) => {
   const customers = new PostgresCustomerRepository(database);
   const loans = new PostgresLoanRepository(database);
   const installments = new PostgresInstallmentRepository(database);
-  const payments = new PostgresPaymentRepository(database);
-  const customerAudit = new PinoCustomerAuditLogger();
-  const loanAudit = new PinoLoanAuditLogger();
-  const paymentAudit = new PinoPaymentAuditLogger();
+  const cash = new PostgresCashRepository(database);
+  const reports = new PostgresReportRepository(database);
+  const auditLogs = new PostgresAuditRepository(database);
+  const payments = new PostgresPaymentRepository(database, cash);
+  const customerAudit = new PinoCustomerAuditLogger(auditLogs);
+  const loanAudit = new PinoLoanAuditLogger(auditLogs);
+  const paymentAudit = new PinoPaymentAuditLogger(auditLogs);
+  const cashAudit = new PinoCashAuditLogger(auditLogs);
+  const userAudit = new PinoUserAuditLogger(auditLogs);
+  const accessControlAudit = new PinoAccessControlAuditLogger(auditLogs);
   const schedule = new InstallmentScheduleGenerator(new SimpleInterestStrategy());
   const passwordHasher = new BcryptPasswordHasher();
   const tokenService = new JwtTokenService();
@@ -43,15 +58,18 @@ export const createContainer = (database: Pool = pool) => {
     loans,
     installments,
     payments,
+    cash,
+    reports,
+    auditLogs,
     tokenService,
-    registerUser: new RegisterUserUseCase(users, passwordHasher),
+    registerUser: new RegisterUserUseCase(users, passwordHasher, userAudit),
     login: new LoginUseCase(users, passwordHasher, tokenService),
     listUsers: new ListUsersUseCase(users),
     getUser: new GetUserUseCase(users),
-    updateUser: new UpdateUserUseCase(users),
+    updateUser: new UpdateUserUseCase(users, userAudit),
     listRoles: new ListRolesUseCase(accessControl),
-    createRole: new CreateRoleUseCase(accessControl),
-    updateRole: new UpdateRoleUseCase(accessControl),
+    createRole: new CreateRoleUseCase(accessControl, accessControlAudit),
+    updateRole: new UpdateRoleUseCase(accessControl, accessControlAudit),
     listPermissions: new ListPermissionsUseCase(accessControl),
     listCustomers: new ListCustomersUseCase(customers),
     getCustomer: new GetCustomerUseCase(customers),
@@ -70,6 +88,18 @@ export const createContainer = (database: Pool = pool) => {
     cancelPayment: new CancelPaymentUseCase(payments, paymentAudit),
     listLoanPayments: new ListLoanPaymentsUseCase(payments),
     listInstallmentPayments: new ListInstallmentPaymentsUseCase(payments),
+    openCash: new OpenCashSessionUseCase(cash, cashAudit),
+    getCurrentCash: new GetCurrentCashSessionUseCase(cash),
+    createCashMovement: new CreateCashMovementUseCase(cash, cashAudit),
+    listCashMovements: new ListCashMovementsUseCase(cash),
+    closeCash: new CloseCashSessionUseCase(cash, cashAudit),
+    listCashHistory: new ListCashHistoryUseCase(cash),
+    getReportSummary: new GetSystemSummaryUseCase(reports),
+    getLoanReport: new GetLoanReportUseCase(reports),
+    getInstallmentReport: new GetInstallmentReportUseCase(reports),
+    getCollectionReport: new GetCollectionReportUseCase(reports),
+    getCashReport: new GetCashReportUseCase(reports),
+    listAuditLogs: new ListAuditLogsUseCase(auditLogs),
   };
 };
 

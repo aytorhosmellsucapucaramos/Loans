@@ -1,73 +1,137 @@
-# Loans
+# Sistema de préstamos
 
-## Sistema de préstamos
+Aplicación para la gestión operativa de una casa de préstamos: clientes, préstamos y cuotas, cobros, caja, reportes y consulta de auditoría. El repositorio es un monorepo con npm workspaces; backend y frontend se pueden ejecutar y desplegar por separado.
 
-Base de un monorepo para una casa de préstamos. Esta primera entrega contiene únicamente la estructura, configuraciones y reglas de arquitectura; no implementa los módulos de negocio.
+## Tecnologías
 
-## Arquitectura propuesta
+- **Frontend:** Angular 20, TypeScript estricto, componentes standalone, Reactive Forms y Angular Material.
+- **Backend:** Node.js, Express 5 y TypeScript.
+- **Datos:** PostgreSQL mediante consultas parametrizadas y transacciones para operaciones financieras.
+- **Seguridad y operación:** JWT, bcrypt, Helmet, CORS restringible, rate limiting, Joi, Pino, Jest, Jasmine/Karma, ESLint 9 y Prettier.
 
-El repositorio usa **npm workspaces** para agrupar dos aplicaciones desplegables de forma independiente:
+## Estructura y arquitectura
 
 ```text
 sistema-prestamos/
-├── frontend/                 # SPA Angular
-├── backend/                  # API REST Express
-├── docs/                     # Decisiones y estándares transversales
-├── package.json              # Scripts compartidos y workspaces
-└── .env.example              # Referencia de variables locales
+├── backend/                 # API REST y migraciones PostgreSQL
+├── frontend/                # SPA Angular
+├── docs/                    # Contratos HTTP, estándares y operación
+├── PrestameEsta/            # Colección local de Bruno (no versionada si contiene secretos)
+├── eslint.config.mjs        # Configuración flat de ESLint 9
+├── package.json             # Workspaces y scripts raíz
+└── .env.example             # Plantilla de configuración local
 ```
 
-El backend sigue una arquitectura modular por dominio. Cada módulo conserva sus responsabilidades en cuatro capas:
+El backend está organizado por dominio y conserva cuatro capas:
 
 ```text
-src/modules/<dominio>/
-├── domain/                   # Entidades, value objects, contratos y reglas puras
-├── application/              # Casos de uso y servicios de aplicación
-├── infrastructure/           # PostgreSQL, proveedores externos y adaptadores técnicos
-└── interfaces/http/          # Controladores, rutas, DTOs y validadores HTTP
+backend/src/modules/<dominio>/
+├── domain/                  # Entidades, contratos y reglas puras
+├── application/             # Casos de uso y orquestación
+├── infrastructure/          # PostgreSQL, repositorios y adaptadores
+└── interfaces/http/         # Rutas, controladores, DTOs y validadores
 ```
 
-Las dependencias siempre apuntan hacia el dominio. Los controladores no contienen reglas de negocio y los casos de uso dependen de contratos de repositorio, no de PostgreSQL. La composición de dependencias se hará en `backend/src/shared/container`.
+Los controladores delegan a casos de uso; estos dependen de contratos, no de PostgreSQL. La composición de dependencias se concentra en `backend/src/shared/container`. El frontend separa servicios y seguridad transversal en `core`, componentes reutilizables en `shared` y cada capacidad en `features`.
 
-El frontend usa una organización por capacidades: `core` para servicios singleton y protección de rutas, `shared` para componentes reutilizables y `features` para las pantallas de cada dominio. Angular Material aportará componentes accesibles, y cada vista se diseñará mobile-first con puntos de quiebre para tableta y escritorio.
+## Módulos disponibles
 
-## Patrones aplicados con criterio
+| Módulo | Alcance actual |
+| --- | --- |
+| Autenticación, usuarios y access control | Registro, inicio/cierre de sesión, JWT, roles y permisos. |
+| Clientes | Alta, edición, búsqueda, paginación y activación lógica. |
+| Préstamos y cuotas | Interés simple, cronograma de cuotas iguales y consulta de detalle. |
+| Pagos | Registro parcial/final, prevención de duplicados y anulación. |
+| Caja | Apertura, ingresos, egresos, cierre y movimientos automáticos de cobros en efectivo. |
+| Reportes | Resumen, cartera, cuotas, cobranza y caja, solo lectura. |
+| Auditoría | Consulta paginada de operaciones, solo lectura y sin campos sensibles. |
 
-| Patrón | Uso previsto | Razón |
-| --- | --- | --- |
-| Repository | Persistencia por agregado | Aísla PostgreSQL y facilita pruebas. |
-| Service Layer | Casos de uso de aplicación | Orquesta reglas, repositorios y transacciones. |
-| Dependency Injection | Composición de servicios | Hace explícitas las dependencias y permite sustituirlas en pruebas. |
-| Factory Method | Creación de préstamos/cuotas relacionados | Centraliza invariantes cuando existan varios productos de préstamo. |
-| Strategy | Interés, mora y modalidades de cálculo | Permite añadir políticas sin condicionales crecientes. |
-| Adapter | SMS, correo, pasarela de pago u otros terceros | Evita que APIs externas invadan el dominio. |
-| Eventos (Observer) | Auditoría y notificaciones | Desacopla efectos posteriores a una operación. |
-| Facade | Desembolso, registro de pago y cierre | Ofrece una entrada única para flujos multi-paso. |
+La lista completa de rutas, permisos, filtros y ejemplos está en [docs/endpoints.md](docs/endpoints.md). Las respuestas siguen el contrato de [docs/standards.md](docs/standards.md).
 
-No se crearán abstracciones o patrones donde un caso de uso simple no los justifique.
+## Requisitos e instalación
 
-## Dominios previstos
+Se requiere Node.js 20.19 o posterior, npm 10 o posterior y PostgreSQL disponible.
 
-`auth`, `users`, `access-control`, `customers`, `loans`, `installments`, `payments`, `interest`, `cash`, `reports`, `audit` y `settings`.
+```bash
+npm install
+```
 
-## Reglas de ingeniería
+Copie `.env.example` como `.env` en la raíz y reemplace todos los valores de ejemplo. No versionar `.env`; el archivo ya está excluido por `.gitignore`.
 
-Las reglas completas están en [docs/standards.md](docs/standards.md) y los endpoints de la primera fase en [docs/endpoints.md](docs/endpoints.md). En resumen:
+Variables necesarias:
 
-- **Errores:** una jerarquía de errores de aplicación y un middleware HTTP global producen respuestas homogéneas; no se filtran trazas ni detalles de infraestructura.
-- **Validación:** los DTO se validan en el borde HTTP; el dominio vuelve a proteger sus invariantes. Los datos no válidos nunca llegan a un caso de uso.
-- **Entorno:** secretos y valores por entorno se leen una sola vez, se validan al iniciar y no se versionan. Copiar `.env.example` a `.env` para desarrollo local.
-- **Logging:** logs estructurados con identificador de correlación, nivel y contexto; nunca contraseñas, tokens ni datos financieros completos.
-- **Seguridad:** HTTPS en producción, cabeceras seguras, CORS de lista permitida, limitación de peticiones, hash de contraseñas y consultas parametrizadas.
-- **Pruebas:** pruebas unitarias para dominio y casos de uso, con repositorios y proveedores simulados; integración separada para HTTP y PostgreSQL.
-- **Rutas y acceso:** guards del frontend mejoran la experiencia, pero la API es la autoridad: autentica tokens y comprueba permisos en cada endpoint protegido.
-- **Nombres:** inglés para código y nombres explícitos; `kebab-case` para archivos Angular, `camelCase` para variables/funciones, `PascalCase` para tipos/clases y `UPPER_SNAKE_CASE` para variables de entorno.
-- **API:** todas las respuestas usan el sobre documentado en `docs/standards.md`, con `data` o `error`, `meta` y `requestId`.
+| Variable | Uso |
+| --- | --- |
+| `NODE_ENV` | Entorno de ejecución (`development`, `test` o `production`). |
+| `PORT` | Puerto HTTP de la API. |
+| `DATABASE_URL` | Cadena de conexión de PostgreSQL. |
+| `JWT_ACCESS_SECRET` | Secreto aleatorio de al menos 32 caracteres. |
+| `JWT_ACCESS_EXPIRES_IN` | Vigencia del access token, por ejemplo `15m`. |
+| `JWT_REFRESH_SECRET` | Secreto reservado para el flujo de renovación. |
+| `CORS_ORIGIN` | Origen exacto permitido para el frontend. |
+| `LOG_LEVEL` | Nivel de Pino. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Administrador inicial para el seeder. |
 
-## Inicio posterior
+## Base de datos
 
-1. Copiar `.env.example` como `.env` en la raíz y completar valores locales.
-2. Ejecutar `npm install` desde la raíz cuando se decida fijar el lockfile.
-3. Ejecutar `npm run dev:frontend` o `npm run dev:backend`.
+Compile el backend antes de ejecutar los comandos de base de datos, porque los ejecutables de migración y seed se generan en `dist`:
 
-La conexión a PostgreSQL, migraciones y módulos de negocio se añadirán en la siguiente fase.
+```bash
+npm run build --workspace=@sistema-prestamos/backend
+npm run db:migrate --workspace=@sistema-prestamos/backend
+npm run db:seed --workspace=@sistema-prestamos/backend
+```
+
+Las migraciones y el seeder son idempotentes. Ejecute el seeder con cuidado en producción: sincroniza los permisos del administrador inicial y, por diseño actual, vuelve a establecer la contraseña definida por `ADMIN_PASSWORD`.
+
+## Ejecución local
+
+En terminales separadas:
+
+```bash
+npm run dev:backend
+npm run dev:frontend
+```
+
+La API se expone normalmente en `http://localhost:3000/api` y Angular en `http://localhost:4200`. En desarrollo, `frontend/src/environments/environment.development.ts` apunta a la API local; la configuración de producción usa `/api` para que un proxy inverso pueda servir ambas aplicaciones bajo el mismo origen.
+
+## Calidad, pruebas y lint
+
+```bash
+npm run build
+npm test
+npm run lint
+npm run format:check
+```
+
+`eslint.config.mjs` usa la configuración flat de ESLint 9 con TypeScript y Angular, incluidas plantillas HTML. La regla de variables sin uso admite el prefijo `_` únicamente para descartes explícitos; el resto es un error de lint.
+
+Para pruebas manuales, importe o abra la colección de Bruno en `PrestameEsta/`, configure una variable de entorno para la URL de API y un token temporal, y siga los ejemplos de [docs/endpoints.md](docs/endpoints.md). No guarde tokens ni credenciales reales en archivos `.bru` versionados.
+
+## Flujo operativo
+
+1. Inicie sesión con un usuario autorizado.
+2. Registre y valide un cliente activo.
+3. Cree el préstamo; el backend calcula el total y genera las cuotas dentro de una transacción.
+4. Abra caja antes de registrar un pago en efectivo.
+5. Registre pagos contra cuotas pendientes; el backend recalcula saldos y estados.
+6. Consulte o cierre caja, incluyendo sus movimientos y diferencias.
+7. Consulte reportes y auditoría con los permisos correspondientes.
+
+Los permisos se validan en la API; los guards y botones ocultos de Angular solo mejoran la experiencia y no sustituyen esa validación.
+
+## Preparación para producción
+
+- Use secretos distintos, largos y almacenados en un gestor de secretos; nunca en código, imágenes ni repositorios.
+- Defina `NODE_ENV=production`, una `DATABASE_URL` con usuario de mínimo privilegio y `CORS_ORIGIN` con el origen HTTPS exacto.
+- Publique detrás de HTTPS y un proxy inverso configurado de forma explícita. Revise también la confianza de proxy antes de usar cabeceras de cliente en producción.
+- Mantenga PostgreSQL, Node.js y dependencias con parches de seguridad revisados en una ventana controlada.
+- Centralice los logs y confirme que las políticas de retención no recolecten contraseñas, tokens o secretos.
+- Realice copias de seguridad cifradas y ensaye su restauración según [docs/backups.md](docs/backups.md).
+
+## Limitaciones actuales
+
+- No existe todavía automatización interna de copias de seguridad ni generación de APK.
+- HTTPS, proxy inverso, monitorización y almacenamiento externo de logs son responsabilidades de despliegue.
+- El access token expira según `JWT_ACCESS_EXPIRES_IN`; la renovación de sesión no expone aún un endpoint público de refresh token.
+- La regla de interés implementada es interés simple con cuotas iguales; productos financieros adicionales requieren una decisión funcional antes de incorporarse.

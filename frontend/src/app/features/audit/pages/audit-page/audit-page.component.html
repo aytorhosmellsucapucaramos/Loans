@@ -1,0 +1,6 @@
+<section class="page-header"><div><p class="eyebrow">Trazabilidad</p><h1>Auditoría</h1><p>Consulta las operaciones registradas por el sistema, ordenadas de la más reciente a la más antigua.</p></div><button mat-stroked-button (click)="load()" [disabled]="loading()"><mat-icon>refresh</mat-icon>Actualizar</button></section>
+<sp-audit-filters [form]="filters" (applyFilters)="applyFilters()" (clearFilters)="clearFilters()" />
+@if (loading()) { <div class="state"><mat-spinner diameter="40" /><span>Cargando registros de auditoría…</span></div> }
+@else if (error()) { <div class="state error"><mat-icon>error</mat-icon><span>{{ error() }}</span><button mat-stroked-button (click)="load()">Reintentar</button></div> }
+@else if (!entries().length) { <div class="state"><mat-icon>manage_search</mat-icon><span>No se encontraron registros con los filtros seleccionados.</span></div> }
+@else { <sp-audit-table [entries]="entries()" /><mat-paginator [length]="total()" [pageIndex]="page() - 1" [pageSize]="pageSize()" [pageSizeOptions]="[10, 20, 50, 100]" (page)="changePage($event)" aria-label="Paginación de auditoría" /> }

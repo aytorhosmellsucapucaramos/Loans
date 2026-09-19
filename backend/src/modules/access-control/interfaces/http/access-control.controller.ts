@@ -12,11 +12,11 @@ export class AccessControlController {
   };
 
   createRole: RequestHandler = async (request, response) => {
-    success(response, await this.container.createRole.execute(request.body), 'Rol creado correctamente.', 201);
+    success(response, await this.container.createRole.execute(request.body, request.auth!.userId), 'Rol creado correctamente.', 201);
   };
 
   updateRole: RequestHandler = async (request, response) => {
-    success(response, await this.container.updateRole.execute(stringParam(request.params.id, 'id'), request.body), 'Rol actualizado correctamente.');
+    success(response, await this.container.updateRole.execute(stringParam(request.params.id, 'id'), request.body, request.auth!.userId), 'Rol actualizado correctamente.');
   };
 
   listPermissions: RequestHandler = async (_request, response) => {

@@ -16,10 +16,10 @@ export class UserController {
   };
 
   create: RequestHandler = async (request, response) => {
-    success(response, await this.container.registerUser.execute(request.body), 'Usuario creado correctamente.', 201);
+    success(response, await this.container.registerUser.execute(request.body, request.auth!.userId), 'Usuario creado correctamente.', 201);
   };
 
   update: RequestHandler = async (request, response) => {
-    success(response, await this.container.updateUser.execute(stringParam(request.params.id, 'id'), request.body), 'Usuario actualizado correctamente.');
+    success(response, await this.container.updateUser.execute(stringParam(request.params.id, 'id'), request.body, request.auth!.userId), 'Usuario actualizado correctamente.');
   };
 }

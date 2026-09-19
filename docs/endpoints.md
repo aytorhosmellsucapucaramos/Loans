@@ -1,4 +1,4 @@
-# Endpoints — fases uno a cinco
+# Endpoints — fases uno a nueve
 
 Todas las respuestas siguen el contrato `success`, `message`, `data` y `errors` definido en [standards.md](standards.md). Las rutas protegidas requieren `Authorization: Bearer <accessToken>`.
 
@@ -33,6 +33,19 @@ Todas las respuestas siguen el contrato `success`, `message`, `data` y `errors` 
 | PATCH | `/api/payments/:id/cancel` | `payments.cancel` |
 | GET | `/api/loans/:loanId/payments` | `payments.read` |
 | GET | `/api/installments/:installmentId/payments` | `payments.read` |
+| GET | `/api/cash/current` | `cash.read` |
+| POST | `/api/cash/open` | `cash.open` |
+| POST | `/api/cash/:id/income` | `cash.movement.create` |
+| POST | `/api/cash/:id/expense` | `cash.movement.create` |
+| GET | `/api/cash/:id/movements` | `cash.read` |
+| POST | `/api/cash/:id/close` | `cash.close` |
+| GET | `/api/cash/history` | `cash.read` |
+| GET | `/api/reports/summary` | `reports.read` |
+| GET | `/api/reports/loans` | `reports.read` |
+| GET | `/api/reports/installments` | `reports.read` |
+| GET | `/api/reports/collections` | `reports.read` |
+| GET | `/api/reports/cash` | `reports.read` |
+| GET | `/api/audit` | `audit.read` |
 
 ## Ejemplos
 
@@ -93,7 +106,7 @@ Una búsqueda paginada devuelve `data.items` y `data.pagination` con `page`, `pa
 
 ## Préstamos y cuotas
 
-`GET /api/loans` admite `page`, `pageSize`, `customerId`, `status` (`active` o `cancelled`) y `search`, que busca por cliente, documento o identificador de préstamo. Las cuotas se consultan pero no se modifican directamente durante esta fase.
+`GET /api/loans` admite `page`, `pageSize`, `customerId`, `status` (`active`, `paid` o `cancelled`) y `search`, que busca por cliente, documento o identificador de préstamo. Las consultas de préstamos incluyen `customer` con `id`, nombres, apellidos y documento para presentación; `customerId` se conserva como identificador interno. Las cuotas se consultan pero no se modifican directamente durante esta fase.
 
 ```http
 POST /api/loans
@@ -134,3 +147,69 @@ Content-Type: application/json
 ```
 
 `GET /api/payments` acepta `page`, `pageSize`, `loanId`, `installmentId` y `status` (`registered` o `cancelled`). Una referencia de operación no vacía no puede repetirse para la misma cuota mientras el pago esté activo. Si no hay referencia (por ejemplo, efectivo), no existe una clave externa determinista para deduplicar pagos y el registro queda sujeto a la confirmación explícita del operador.
+
+## Caja
+
+Una caja pertenece al usuario que la abre y un mismo usuario solo puede tener una sesión con estado `open`. `GET /api/cash/current` devuelve la sesión abierta del usuario autenticado; `GET /api/cash/history` admite `page`, `pageSize`, `status` y `userId`.
+
+```http
+POST /api/cash/open
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"openingAmount":100.00,"observations":"Apertura del turno"}
+```
+
+```http
+POST /api/cash/<cashSessionId>/income
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"amount":25.00,"paymentMethod":"cash","description":"Ingreso manual"}
+```
+
+`income` y `expense` validan un importe positivo, el método (`cash`, `bank_transfer`, `yape`, `plin`, `other`) y una descripción. El saldo físico esperado considera únicamente movimientos con método `cash`: monto inicial + ingresos − egresos − reversiones.
+
+```http
+POST /api/cash/<cashSessionId>/close
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"declaredClosingAmount":125.00,"observations":"Cierre conciliado"}
+```
+
+Al cerrar, la API persiste los totales, el monto esperado, el declarado y la diferencia (`declarado - esperado`). Una caja cerrada no admite más movimientos ni puede cerrarse otra vez.
+
+Los pagos con `paymentMethod: "cash"` requieren una caja abierta del usuario que registra el pago. El mismo `BEGIN/COMMIT` que registra o anula el pago inserta un movimiento único de ingreso o reversión vinculado a `paymentId`; si una de las operaciones falla, PostgreSQL revierte ambas. Los cobros no físicos no alteran el efectivo esperado.
+
+## Reportes
+
+Todos los endpoints de reportes son de solo lectura y requieren `reports.read`. Las respuestas contienen datos agregados por PostgreSQL y, cuando incluyen detalle, `data.page.items` junto a `data.page.pagination`.
+
+- `GET /api/reports/summary`: clientes activos, préstamos activos, desembolsado, pendiente, cobrado, cuotas vencidas, pagos del día y efectivo esperado de las cajas abiertas.
+- `GET /api/reports/loans`: acepta `page`, `pageSize`, `fromDate`, `toDate`, `customerId` y `status`; la fecha se aplica al desembolso.
+- `GET /api/reports/installments`: acepta `page`, `pageSize`, `fromDate`, `toDate` y `status`; la fecha se aplica al vencimiento. Una cuota con saldo y vencimiento anterior al día actual en `America/Lima` se reporta como vencida aunque su campo persistido aún no se haya actualizado.
+- `GET /api/reports/collections`: acepta `page`, `pageSize`, `fromDate` y `toDate`; considera solo pagos registrados y presenta totales por día y método.
+- `GET /api/reports/cash`: acepta `page`, `pageSize`, `fromDate`, `toDate`, `cashSessionId` y `status`; solo los movimientos físicos (`cash`) afectan el saldo esperado.
+
+```http
+GET /api/reports/loans?fromDate=2026-09-01&toDate=2026-09-30&status=active&page=1&pageSize=20
+Authorization: Bearer <accessToken>
+```
+
+Los rangos usan fechas ISO `YYYY-MM-DD`, son inclusivos y requieren que `fromDate` no sea posterior a `toDate`. Los timestamps de caja se delimitan en la zona horaria `America/Lima`.
+
+## Auditoría
+
+`GET /api/audit` es de solo lectura y requiere `audit.read`. Devuelve `data.items` y `data.pagination`, ordenados de forma descendente por `createdAt` (y por identificador como desempate). Cada elemento contiene el usuario responsable —cuando aún existe—, la acción, entidad e identificador afectados, descripción, resultado, metadatos técnicos seguros, dirección IP si fue registrada y fecha/hora. No se devuelven contraseñas, hashes, tokens, secretos ni información bancaria.
+
+Acepta `page` (predeterminado `1`), `pageSize` (predeterminado `20`, máximo `100`), `userId`, `action`, `entityType`, `entityId`, `fromDate`, `toDate`, `result` (`success` o `failure`) y `search`. La búsqueda se aplica a acción, entidad y descripción. Las fechas ISO `YYYY-MM-DD` usan los límites de `America/Lima`; el rango es inclusivo y `fromDate` no puede ser posterior a `toDate`.
+
+```http
+GET /api/audit?action=payment.registered&entityType=payment&fromDate=2026-09-01&toDate=2026-09-30&page=1&pageSize=20
+Authorization: Bearer <accessToken>
+```
+
+```json
+{"success":true,"message":"Registros de auditoría obtenidos correctamente.","data":{"items":[{"id":"uuid","user":{"id":"uuid","email":"admin@example.com","firstName":"Administrador","lastName":"Inicial"},"action":"payment.registered","entityType":"payment","entityId":"uuid","description":"Pago registrado.","metadata":{"source":"application"},"ipAddress":null,"result":"success","createdAt":"2026-09-18T12:00:00.000Z"}],"pagination":{"page":1,"pageSize":20,"total":1,"totalPages":1}},"errors":[]}
+```

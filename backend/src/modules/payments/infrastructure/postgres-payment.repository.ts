@@ -4,6 +4,7 @@ import { AppError, notFound } from '../../../shared/errors/app-error.js';
 import type { PaymentData, PaymentMethod, PaymentStatus } from '../domain/payment.js';
 import { Payment } from '../domain/payment.js';
 import type { PaymentListCriteria, PaymentPage, PaymentRepository, RegisterPaymentInput } from '../domain/payment-repository.js';
+import type { CashPaymentMovementGateway } from '../../cash/infrastructure/cash-payment-movement.gateway.js';
 
 type PaymentRow = {
   id: string; loan_id: string; installment_id: string; amount: string; payment_method: PaymentMethod; payment_date: Date | string;
@@ -24,7 +25,7 @@ const mapRow = (row: PaymentRow): Payment => new Payment({
 } satisfies PaymentData);
 
 export class PostgresPaymentRepository implements PaymentRepository {
-  constructor(private readonly database: Pool) {}
+  constructor(private readonly database: Pool, private readonly cash: CashPaymentMovementGateway) {}
 
   async register(input: RegisterPaymentInput): Promise<Payment> {
     const client = await this.database.connect();
@@ -43,6 +44,7 @@ export class PostgresPaymentRepository implements PaymentRepository {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
         [input.loanId, input.installmentId, input.amount, input.paymentMethod, input.paymentDate, input.operationReference ?? null, input.observations ?? null, input.registeredByUserId],
       );
+      if (input.paymentMethod === 'cash') await this.cash.registerPaymentIncome(client, { paymentId: created.rows[0]!.id, amount: input.amount, userId: input.registeredByUserId });
       await client.query(
         `UPDATE installments SET outstanding_amount = outstanding_amount - $1,
          status = CASE WHEN outstanding_amount - $1 = 0 THEN 'paid' ELSE 'pending' END
@@ -90,7 +92,7 @@ export class PostgresPaymentRepository implements PaymentRepository {
     return result.rows.map(mapRow);
   }
 
-  async cancel(id: string): Promise<Payment> {
+  async cancel(id: string, cancelledByUserId: string): Promise<Payment> {
     const client = await this.database.connect();
     try {
       await client.query('BEGIN');
@@ -100,6 +102,7 @@ export class PostgresPaymentRepository implements PaymentRepository {
       if (payment.status === 'cancelled') throw new AppError(422, 'PAYMENT_ALREADY_CANCELLED', 'El pago ya fue anulado.');
       const loan = await this.lockLoan(client, payment.loan_id);
       const installment = await this.lockInstallment(client, payment.installment_id);
+      if (payment.payment_method === 'cash') await this.cash.registerPaymentReversal(client, { paymentId: payment.id, amount: payment.amount, userId: cancelledByUserId });
       await client.query("UPDATE payments SET status = 'cancelled' WHERE id = $1", [id]);
       await client.query(
         `UPDATE installments SET outstanding_amount = outstanding_amount + $1,

@@ -27,7 +27,7 @@ export interface PaymentRepository {
   findPage(criteria: PaymentListCriteria): Promise<PaymentPage>;
   findByLoanId(loanId: string): Promise<Payment[]>;
   findByInstallmentId(installmentId: string): Promise<Payment[]>;
-  cancel(id: string): Promise<Payment>;
+  cancel(id: string, cancelledByUserId: string): Promise<Payment>;
 }
 
 export type { PaymentData };

@@ -3,8 +3,10 @@ import * as initialAuth from './001-initial-auth.js';
 import * as customers from './002-customers.js';
 import * as loansInstallments from './003-loans-installments.js';
 import * as payments from './004-payments.js';
+import * as cash from './005-cash.js';
+import * as audit from './006-audit.js';
 
-const migrations = [initialAuth, customers, loansInstallments, payments];
+const migrations = [initialAuth, customers, loansInstallments, payments, cash, audit];
 
 const run = async (): Promise<void> => {
   await pool.query(`

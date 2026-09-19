@@ -6,6 +6,14 @@ export const loanStatuses = ['active', 'cancelled', 'paid'] as const;
 export type LoanStatus = (typeof loanStatuses)[number];
 export const manuallySettableLoanStatuses = ['active', 'cancelled'] as const;
 
+export type LoanCustomerSummary = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  documentType: string;
+  documentNumber: string;
+};
+
 export type LoanData = {
   id: string;
   customerId: string;
@@ -19,6 +27,7 @@ export type LoanData = {
   totalAmount: string;
   status: LoanStatus;
   observations: string | null;
+  customer?: LoanCustomerSummary;
   createdAt: Date;
   updatedAt: Date;
 };

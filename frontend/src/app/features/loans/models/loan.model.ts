@@ -1,8 +1,16 @@
 import type { Installment } from './installment.model';
 
-export type LoanStatus = 'active' | 'cancelled';
+export type LoanStatus = 'active' | 'cancelled' | 'paid';
 export type InterestType = 'simple';
 export type PaymentFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly';
+
+export interface LoanCustomerSummary {
+  id: string;
+  firstName: string;
+  lastName: string;
+  documentType: string;
+  documentNumber: string;
+}
 
 export interface Loan {
   id: string;
@@ -17,6 +25,7 @@ export interface Loan {
   totalAmount: string;
   status: LoanStatus;
   observations: string | null;
+  customer?: LoanCustomerSummary;
   createdAt: string;
   updatedAt: string;
 }

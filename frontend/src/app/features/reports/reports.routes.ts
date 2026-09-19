@@ -1,0 +1,1 @@
+import { Routes } from '@angular/router'; import { ReportDetailPageComponent } from './pages/report-detail-page/report-detail-page.component'; import { ReportsPageComponent } from './pages/reports-page/reports-page.component'; export const REPORTS_ROUTES: Routes=[{path:'',component:ReportsPageComponent},{path:':type',component:ReportDetailPageComponent}];

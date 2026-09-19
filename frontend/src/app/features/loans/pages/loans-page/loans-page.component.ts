@@ -85,7 +85,8 @@ export class LoansPageComponent {
     ).subscribe({ next: (updated) => { if (updated) { this.loans.update((items) => items.map((item) => item.id === updated.id ? updated : item)); this.notifications.success('Estado del préstamo actualizado correctamente.'); } } });
   }
 
-  customerName(customerId: string): string { const customer = this.customers().find((item) => item.id === customerId); return customer ? `${customer.firstName} ${customer.lastName}` : customerId; }
+  customerName(loan: Loan): string { const customer = loan.customer ?? this.customers().find((item) => item.id === loan.customerId); return customer ? `${customer.firstName} ${customer.lastName}` : 'Cliente no disponible'; }
+  frequencyLabel(value: Loan['paymentFrequency']): string { return ({ daily: 'Diario', weekly: 'Semanal', biweekly: 'Quincenal', monthly: 'Mensual' })[value]; }
   private loadCustomers(): void { this.customersApi.list({ page: 1, pageSize: 100 }).subscribe({ next: (result) => this.customers.set(result.items), error: () => undefined }); }
   private confirm(title: string, message: string) { return this.dialog.open(ConfirmDialogComponent, { data: { title, message, confirmLabel: 'Confirmar' } }).afterClosed(); }
 }

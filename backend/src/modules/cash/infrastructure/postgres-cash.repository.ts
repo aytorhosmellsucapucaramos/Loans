@@ -76,8 +76,13 @@ export class PostgresCashRepository implements CashRepository, CashPaymentMoveme
 
   async registerPaymentIncome(client: PoolClient, input: { paymentId: string; amount: string; userId: string }): Promise<void> {
     const session = await this.lockCurrentSession(client, input.userId);
-    if (!session) throw new AppError(422, 'CASH_SESSION_REQUIRED', 'Se requiere una caja abierta para registrar un pago en efectivo.');
+    if (!session) throw new AppError(422, 'CASH_SESSION_REQUIRED', 'Se requiere una caja abierta para registrar un pago.');
     await client.query(`INSERT INTO cash_movements (cash_session_id, type, amount, payment_method, description, payment_id, created_by_user_id) VALUES ($1,'income',$2,'cash','Cobro de pago en efectivo',$3,$4)`, [session.id, input.amount, input.paymentId, input.userId]);
+  }
+
+  async requireOpenCashSession(client: PoolClient, userId: string): Promise<void> {
+    const session = await this.lockCurrentSession(client, userId);
+    if (!session) throw new AppError(422, 'CASH_SESSION_REQUIRED', 'Se requiere una caja abierta para registrar un pago.');
   }
 
   async registerPaymentReversal(client: PoolClient, input: { paymentId: string; amount: string; userId: string }): Promise<void> {

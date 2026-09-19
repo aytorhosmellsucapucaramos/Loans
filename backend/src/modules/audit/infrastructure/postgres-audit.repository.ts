@@ -59,13 +59,13 @@ export class PostgresAuditRepository implements AuditRepository, AuditWriter {
     if (criteria.result) add('a.result =', criteria.result);
     if (criteria.fromDate) { values.push(criteria.fromDate); where.push(`a.created_at >= ($${values.length}::date::timestamp AT TIME ZONE 'America/Lima')`); }
     if (criteria.toDate) { values.push(criteria.toDate); where.push(`a.created_at < (($${values.length}::date + 1)::timestamp AT TIME ZONE 'America/Lima')`); }
-    if (criteria.search) { values.push(`%${criteria.search}%`); where.push(`(a.action ILIKE $${values.length} OR a.entity_type ILIKE $${values.length} OR a.description ILIKE $${values.length})`); }
+    if (criteria.search) { values.push(`%${criteria.search}%`); where.push(`(a.action ILIKE $${values.length} OR a.entity_type ILIKE $${values.length} OR a.description ILIKE $${values.length} OR CONCAT_WS(' ', u.first_name, u.last_name, u.email) ILIKE $${values.length})`); }
     const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const offset = (criteria.page - 1) * criteria.pageSize;
     const columns = `a.id,a.user_id,u.email user_email,u.first_name user_first_name,u.last_name user_last_name,a.action,a.entity_type,a.entity_id,a.description,a.metadata,a.ip_address::text ip_address,a.result,a.created_at`;
     const [rows, count] = await Promise.all([
       this.database.query<AuditRow>(`SELECT ${columns} FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id ${condition} ORDER BY a.created_at DESC, a.id DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`, [...values, criteria.pageSize, offset]),
-      this.database.query<{ total: string }>(`SELECT COUNT(*)::text total FROM audit_logs a ${condition}`, values),
+      this.database.query<{ total: string }>(`SELECT COUNT(*)::text total FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id ${condition}`, values),
     ]);
     return { ...page(Number(count.rows[0]?.total ?? 0), criteria.page, criteria.pageSize), items: rows.rows.map(toData) };
   }

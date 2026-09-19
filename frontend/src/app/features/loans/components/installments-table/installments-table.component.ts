@@ -19,4 +19,8 @@ export class InstallmentsTableComponent {
   @Input() canRegisterPayments = false;
   @Output() paymentRequested = new EventEmitter<Installment>();
   get columns(): string[] { return this.canRegisterPayments ? ['number', 'dueDate', 'principal', 'interest', 'scheduled', 'outstanding', 'status', 'actions'] : ['number', 'dueDate', 'principal', 'interest', 'scheduled', 'outstanding', 'status']; }
+  canPay(item: Installment): boolean {
+    const next = this.installments.find((installment) => installment.status !== 'paid' && Number(installment.outstandingAmount) > 0);
+    return this.canRegisterPayments && next?.id === item.id;
+  }
 }

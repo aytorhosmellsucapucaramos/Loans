@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
+import { catchError, retry, throwError, timeout, timer } from 'rxjs';
 
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
@@ -21,7 +21,21 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const notifications = inject(NotificationService);
   const auth = inject(AuthService);
   const router = inject(Router);
-  return next(request).pipe(
+  const isSafeRead = request.method === 'GET';
+  const response = isSafeRead
+    ? next(request).pipe(
+      timeout({ first: 15000 }),
+      retry({
+        count: 2,
+        delay: (error, attempt) => {
+          if (error.status !== 0 && error.name !== 'TimeoutError') return throwError(() => error);
+          if (attempt === 1) notifications.warning('Estamos despertando el servidor. Espera unos segundos…');
+          return timer(attempt * 1500);
+        },
+      }),
+    )
+    : next(request);
+  return response.pipe(
     catchError((error: HttpErrorResponse) => {
       const message = error.error?.message ?? messages[error.status] ?? 'No se pudo conectar con el servidor.';
       if (error.status === 401 && !request.url.endsWith('/auth/login')) {

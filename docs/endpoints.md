@@ -132,7 +132,7 @@ Content-Type: application/json
 
 ## Pagos
 
-Los pagos se registran contra una cuota específica y el backend recalcula el saldo bajo una transacción PostgreSQL; por ello nunca se acepta un saldo enviado por el cliente. Los métodos iniciales son `cash`, `bank_transfer`, `yape`, `plin` y `other`. Un pago no se elimina: `PATCH /api/payments/:id/cancel` lo anula y repone el saldo de la cuota.
+Los pagos se registran contra una cuota específica y el backend recalcula el saldo bajo una transacción PostgreSQL; por ello nunca se acepta un saldo enviado por el cliente. Solo admite pago la primera cuota con saldo pendiente, ordenada por número de cuota. Una cuota parcial bloquea todas las posteriores. Un intento de saltar cuota responde `422 INSTALLMENT_SEQUENCE_REQUIRED` incluso desde Bruno. Los métodos iniciales son `cash`, `bank_transfer`, `yape`, `plin` y `other`. Un pago no se elimina: `PATCH /api/payments/:id/cancel` lo anula y repone el saldo de la cuota.
 
 ```http
 POST /api/payments
@@ -180,7 +180,7 @@ Content-Type: application/json
 
 Al cerrar, la API persiste los totales, el monto esperado, el declarado y la diferencia (`declarado - esperado`). Una caja cerrada no admite más movimientos ni puede cerrarse otra vez.
 
-Los pagos con `paymentMethod: "cash"` requieren una caja abierta del usuario que registra el pago. El mismo `BEGIN/COMMIT` que registra o anula el pago inserta un movimiento único de ingreso o reversión vinculado a `paymentId`; si una de las operaciones falla, PostgreSQL revierte ambas. Los cobros no físicos no alteran el efectivo esperado.
+Todo pago requiere una caja abierta del usuario que lo registra, sin importar método. La validación bloquea sesión de caja dentro de la misma transacción y responde `422 CASH_SESSION_REQUIRED` si no existe. Los pagos en efectivo crean ingreso; los cobros no físicos no alteran efectivo esperado. La anulación de efectivo crea una reversión vinculada a `paymentId`; si una de las operaciones falla, PostgreSQL revierte ambas.
 
 ## Reportes
 

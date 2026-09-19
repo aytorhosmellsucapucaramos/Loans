@@ -8,7 +8,7 @@
   <div class="state error"><mat-icon>error</mat-icon><span>{{ error() }}</span><button mat-stroked-button (click)="load()">Reintentar</button></div>
 } @else if (loan(); as item) {
   <section class="summary">
-    <mat-card><mat-card-content><span>Cliente</span><strong>{{ customer() ? customer()!.firstName + ' ' + customer()!.lastName : item.customerId }}</strong></mat-card-content></mat-card>
+    <mat-card><mat-card-content><span>Cliente</span><strong>{{ customer() ? customer()!.firstName + ' ' + customer()!.lastName : 'Cliente no disponible' }}</strong></mat-card-content></mat-card>
     <mat-card><mat-card-content><span>Monto solicitado</span><strong>{{ item.principalAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</strong></mat-card-content></mat-card>
     <mat-card><mat-card-content><span>Total calculado</span><strong>{{ item.totalAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</strong></mat-card-content></mat-card>
     <mat-card><mat-card-content><span>Estado</span><strong [ngClass]="item.status">{{ item.status === 'active' ? 'Activo' : item.status === 'paid' ? 'Pagado' : 'Cancelado' }}</strong></mat-card-content></mat-card>

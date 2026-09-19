@@ -14,7 +14,7 @@ const testGlobals = {
 
 export default tseslint.config(
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/coverage/**', '**/.angular/**'],
+    ignores: ['**/node_modules/**', '**/dist/**', '**/coverage/**', '**/.angular/**', 'frontend/android/**'],
   },
   {
     files: ['backend/src/**/*.ts', 'backend/test/**/*.ts', 'frontend/src/**/*.ts'],

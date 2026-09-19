@@ -1,11 +1,33 @@
 <form class="filters" [formGroup]="form" (ngSubmit)="applyFilters.emit()">
-  <mat-form-field appearance="outline"><mat-label>Buscar</mat-label><input matInput formControlName="search" placeholder="Acción, entidad o descripción" /><mat-icon matSuffix>search</mat-icon></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>ID del usuario responsable</mat-label><input matInput formControlName="userId" placeholder="UUID del usuario" /></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>Acción</mat-label><input matInput formControlName="action" placeholder="payment.registered" /></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>Entidad</mat-label><input matInput formControlName="entityType" placeholder="payment" /></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>Resultado</mat-label><mat-select formControlName="result"><mat-option value="">Todos</mat-option><mat-option value="success">Correcto</mat-option><mat-option value="failure">Fallido</mat-option></mat-select></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>Fecha inicial</mat-label><input matInput type="date" formControlName="fromDate" /></mat-form-field>
-  <mat-form-field appearance="outline"><mat-label>Fecha final</mat-label><input matInput type="date" formControlName="toDate" /></mat-form-field>
-  <div class="actions"><button mat-flat-button color="primary" type="submit"><mat-icon>filter_alt</mat-icon>Filtrar</button><button mat-button type="button" (click)="clearFilters.emit()">Limpiar</button></div>
-  @if (form.hasError('dateRange')) { <p class="error">La fecha inicial no puede ser posterior a la fecha final.</p> }
+  <mat-form-field appearance="outline"
+    ><mat-label>Buscar</mat-label
+    ><input
+      matInput
+      formControlName="search"
+      placeholder="Usuario, operación o descripción"
+    /><mat-icon matSuffix>search</mat-icon></mat-form-field
+  >
+  <mat-form-field appearance="outline"><mat-label>Operación</mat-label><mat-select formControlName="action"><mat-option value="">Todas</mat-option><mat-option value="customer.created">Cliente creado</mat-option><mat-option value="customer.updated">Cliente actualizado</mat-option><mat-option value="loan.created">Préstamo registrado</mat-option><mat-option value="loan.status_changed">Estado de préstamo actualizado</mat-option><mat-option value="payment.registered">Pago registrado</mat-option><mat-option value="payment.cancelled">Pago anulado</mat-option><mat-option value="cash.opened">Caja abierta</mat-option><mat-option value="cash.closed">Caja cerrada</mat-option><mat-option value="user.updated">Usuario actualizado</mat-option></mat-select></mat-form-field>
+  <mat-form-field appearance="outline"><mat-label>Tipo de registro</mat-label><mat-select formControlName="entityType"><mat-option value="">Todos</mat-option><mat-option value="customer">Clientes</mat-option><mat-option value="loan">Préstamos</mat-option><mat-option value="payment">Pagos</mat-option><mat-option value="cash_session">Caja</mat-option><mat-option value="user">Usuarios</mat-option></mat-select></mat-form-field>
+  <mat-form-field appearance="outline"
+    ><mat-label>Resultado</mat-label
+    ><mat-select formControlName="result"
+      ><mat-option value="">Todos</mat-option><mat-option value="success">Correcto</mat-option
+      ><mat-option value="failure">Fallido</mat-option></mat-select
+    ></mat-form-field
+  >
+  <mat-form-field appearance="outline"
+    ><mat-label>Fecha inicial</mat-label><input matInput type="date" formControlName="fromDate"
+  /></mat-form-field>
+  <mat-form-field appearance="outline"
+    ><mat-label>Fecha final</mat-label><input matInput type="date" formControlName="toDate"
+  /></mat-form-field>
+  <div class="actions">
+    <button mat-flat-button color="primary" type="submit">
+      <mat-icon>filter_alt</mat-icon>Filtrar</button
+    ><button mat-button type="button" (click)="clearFilters.emit()">Limpiar</button>
+  </div>
+  @if (form.hasError('dateRange')) {
+    <p class="error">La fecha inicial no puede ser posterior a la fecha final.</p>
+  }
 </form>

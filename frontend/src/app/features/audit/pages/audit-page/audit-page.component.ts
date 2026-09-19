@@ -29,7 +29,7 @@ export class AuditPageComponent {
   private readonly api = inject(AuditService);
   private readonly notifications = inject(NotificationService);
   private readonly builder = inject(FormBuilder);
-  readonly filters = this.builder.nonNullable.group({ userId: '', action: '', entityType: '', result: '' as AuditResult | '', search: '', fromDate: '', toDate: '' }, { validators: dateRangeValidator });
+  readonly filters = this.builder.nonNullable.group({ action: '', entityType: '', result: '' as AuditResult | '', search: '', fromDate: '', toDate: '' }, { validators: dateRangeValidator });
   readonly entries = signal<AuditEntry[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -42,7 +42,7 @@ export class AuditPageComponent {
   load(): void {
     this.loading.set(true); this.error.set(null);
     const value = this.filters.getRawValue();
-    this.api.list({ page: this.page(), pageSize: this.pageSize(), userId: value.userId.trim() || undefined, action: value.action.trim() || undefined, entityType: value.entityType.trim() || undefined, result: value.result || undefined, search: value.search.trim() || undefined, fromDate: value.fromDate || undefined, toDate: value.toDate || undefined }).pipe(finalize(() => this.loading.set(false))).subscribe({
+    this.api.list({ page: this.page(), pageSize: this.pageSize(), action: value.action || undefined, entityType: value.entityType || undefined, result: value.result || undefined, search: value.search.trim() || undefined, fromDate: value.fromDate || undefined, toDate: value.toDate || undefined }).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (result) => { this.entries.set(result.items); this.total.set(result.pagination.total); this.page.set(result.pagination.page); this.pageSize.set(result.pagination.pageSize); },
       error: () => this.error.set('No fue posible cargar los registros de auditoría.'),
     });
@@ -53,6 +53,6 @@ export class AuditPageComponent {
     this.page.set(1); this.load();
   }
 
-  clearFilters(): void { this.filters.reset({ userId: '', action: '', entityType: '', result: '', search: '', fromDate: '', toDate: '' }); this.page.set(1); this.load(); }
+  clearFilters(): void { this.filters.reset({ action: '', entityType: '', result: '', search: '', fromDate: '', toDate: '' }); this.page.set(1); this.load(); }
   changePage(event: PageEvent): void { this.page.set(event.pageIndex + 1); this.pageSize.set(event.pageSize); this.load(); }
 }

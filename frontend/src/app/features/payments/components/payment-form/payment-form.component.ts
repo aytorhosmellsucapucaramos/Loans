@@ -100,9 +100,9 @@ export class PaymentFormComponent {
     this.loadingInstallments.set(true); this.loadError.set(null);
     this.loansApi.getById(loanId).pipe(finalize(() => this.loadingInstallments.set(false))).subscribe({
       next: (loan) => {
-        const pending = loan.installments.filter((item) => item.status !== 'paid' && Number(item.outstandingAmount) > 0);
-        this.installments.set(pending);
-        const id = selectedId && pending.some((item) => item.id === selectedId) ? selectedId : '';
+        const next = loan.installments.find((item) => item.status !== 'paid' && Number(item.outstandingAmount) > 0);
+        this.installments.set(next ? [next] : []);
+        const id = selectedId && selectedId === next?.id ? selectedId : '';
         this.form.controls.installmentId.setValue(id, { emitEvent: false });
       },
       error: () => { this.installments.set([]); this.form.controls.installmentId.setValue('', { emitEvent: false }); this.loadError.set('No fue posible cargar las cuotas pendientes.'); },

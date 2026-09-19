@@ -36,6 +36,9 @@ export class PostgresPaymentRepository implements PaymentRepository {
       const installment = await this.lockInstallment(client, input.installmentId);
       if (installment.loan_id !== loan.id) throw new AppError(422, 'INSTALLMENT_LOAN_MISMATCH', 'La cuota no pertenece al préstamo indicado.');
       if (installment.status === 'paid' || cents(installment.outstanding_amount) === 0n) throw new AppError(422, 'INSTALLMENT_ALREADY_PAID', 'La cuota ya se encuentra pagada.');
+      const nextInstallment = await this.lockNextPendingInstallment(client, loan.id);
+      if (!nextInstallment || nextInstallment.id !== installment.id) throw new AppError(422, 'INSTALLMENT_SEQUENCE_REQUIRED', 'Solo se puede registrar un pago en la primera cuota pendiente del préstamo.');
+      await this.cash.requireOpenCashSession(client, input.registeredByUserId);
       const amountCents = cents(input.amount);
       if (amountCents > cents(installment.outstanding_amount)) throw new AppError(422, 'PAYMENT_EXCEEDS_OUTSTANDING', 'El pago no puede superar el saldo pendiente de la cuota.');
       if (input.operationReference) await this.assertReferenceIsUnique(client, input.installmentId, input.operationReference);
@@ -130,6 +133,18 @@ export class PostgresPaymentRepository implements PaymentRepository {
     const result = await client.query<InstallmentRow>('SELECT id, loan_id, scheduled_amount, outstanding_amount, status FROM installments WHERE id = $1 FOR UPDATE', [id]);
     if (!result.rows[0]) throw new AppError(404, 'INSTALLMENT_NOT_FOUND', 'La cuota no fue encontrada.');
     return result.rows[0];
+  }
+
+  private async lockNextPendingInstallment(client: PoolClient, loanId: string): Promise<InstallmentRow | null> {
+    const result = await client.query<InstallmentRow>(
+      `SELECT id, loan_id, scheduled_amount, outstanding_amount, status
+       FROM installments
+       WHERE loan_id = $1 AND outstanding_amount > 0
+       ORDER BY installment_number ASC
+       LIMIT 1 FOR UPDATE`,
+      [loanId],
+    );
+    return result.rows[0] ?? null;
   }
 
   private async assertReferenceIsUnique(client: PoolClient, installmentId: string, reference: string): Promise<void> {

@@ -23,7 +23,7 @@ describe('NotificationService', () => {
     expect(openFromComponent).toHaveBeenCalled();
     const config = openFromComponent.calls.mostRecent().args[1];
     expect(config.data).toEqual({ message: 'Guardado correctamente.', type: 'success' });
-    expect(config.duration).toBe(4500);
+    expect(config.duration).toBe(2500);
     expect(config.horizontalPosition).toBe('center');
     expect(config.verticalPosition).toBe('top');
   });

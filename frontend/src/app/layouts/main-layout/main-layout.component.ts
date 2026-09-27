@@ -5,9 +5,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { map } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
@@ -16,13 +17,14 @@ type NavigationItem = { label: string; icon: string; path: string; permission?: 
 
 @Component({
   selector: 'sp-main-layout',
-  imports: [AsyncPipe, RouterLink, RouterLinkActive, RouterOutlet, MatButtonModule, MatIconModule, MatListModule, MatSidenavModule, MatToolbarModule],
+  imports: [AsyncPipe, RouterLink, RouterLinkActive, RouterOutlet, MatButtonModule, MatIconModule, MatListModule, MatMenuModule, MatSidenavModule, MatToolbarModule],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MainLayoutComponent {
   private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly router = inject(Router);
   readonly auth = inject(AuthService);
   readonly isHandset = toSignal(this.breakpointObserver.observe('(max-width: 767px)').pipe(map((result) => result.matches)), { initialValue: false });
   readonly navigation: NavigationItem[] = [
@@ -36,8 +38,13 @@ export class MainLayoutComponent {
     { label: 'Reportes', icon: 'analytics', path: '/reports', permission: 'reports.read' },
     { label: 'Auditoría', icon: 'history', path: '/audit', permission: 'audit.read' },
   ];
+  private readonly primaryPaths = ['/dashboard', '/customers', '/loans', '/payments'];
 
   visible(item: NavigationItem): boolean { return !item.permission || this.auth.hasPermission(item.permission); }
+  primaryNavigation(): NavigationItem[] { return this.navigation.filter((item) => this.primaryPaths.includes(item.path) && this.visible(item)); }
+  moreNavigation(): NavigationItem[] { return this.navigation.filter((item) => !this.primaryPaths.includes(item.path) && this.visible(item)); }
+  isActive(item: NavigationItem): boolean { return this.router.isActive(item.path, { paths: 'subset', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' }); }
+  isMoreActive(): boolean { return this.moreNavigation().some((item) => this.isActive(item)); }
   closeOnHandset(drawer: MatSidenav): void { if (this.isHandset()) void drawer.close(); }
   logout(): void { this.auth.logout(); }
 }

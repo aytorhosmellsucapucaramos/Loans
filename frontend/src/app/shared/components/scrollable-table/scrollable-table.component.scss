@@ -1,0 +1,6 @@
+:host { display: block; min-width: 0; }
+.frame { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; min-width: 0; }
+.frame.has-overflow { grid-template-columns: 24px minmax(0, 1fr) 24px; }
+.edge { display: grid; place-items: center; align-self: stretch; min-width: 24px; color: #1d4ed8; background: #fff; visibility: hidden; }
+.edge.visible { visibility: visible; }
+.edge mat-icon { width: 20px; height: 20px; font-size: 20px; }

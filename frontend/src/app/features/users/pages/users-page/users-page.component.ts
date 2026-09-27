@@ -13,6 +13,7 @@ import type { User } from '../../../../core/models/user.model';
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ScrollableTableComponent } from '../../../../shared/components/scrollable-table/scrollable-table.component';
 import { AccessControlApiService } from '../../../access-control/services/access-control-api.service';
 import type { CreateUserPayload, UpdateUserPayload } from '../../models/user-form.model';
 import { UsersApiService } from '../../services/users-api.service';
@@ -20,7 +21,7 @@ import { UserFormDialogComponent } from '../../components/user-form-dialog/user-
 
 @Component({
   selector: 'sp-users-page',
-  imports: [DatePipe, NgClass, MatButtonModule, MatChipsModule, MatIconModule, MatProgressSpinnerModule, MatTableModule],
+  imports: [DatePipe, NgClass, MatButtonModule, MatChipsModule, MatIconModule, MatProgressSpinnerModule, MatTableModule, ScrollableTableComponent],
   templateUrl: './users-page.component.html',
   styleUrl: './users-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

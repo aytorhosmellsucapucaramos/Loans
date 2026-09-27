@@ -5,11 +5,12 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 
+import { ScrollableTableComponent } from '../../../../shared/components/scrollable-table/scrollable-table.component';
 import type { Payment } from '../../models/payment.model';
 
 @Component({
   selector: 'sp-payments-table',
-  imports: [CurrencyPipe, DatePipe, NgClass, TitleCasePipe, MatButtonModule, MatChipsModule, MatIconModule, MatTableModule],
+  imports: [CurrencyPipe, DatePipe, NgClass, TitleCasePipe, MatButtonModule, MatChipsModule, MatIconModule, MatTableModule, ScrollableTableComponent],
   templateUrl: './payments-table.component.html',
   styleUrl: './payments-table.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

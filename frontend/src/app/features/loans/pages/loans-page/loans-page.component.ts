@@ -15,6 +15,7 @@ import { Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, finalize, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../../core/services/auth.service';
+import { ScrollableTableComponent } from '../../../../shared/components/scrollable-table/scrollable-table.component';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import type { Customer } from '../../../customers/models/customer.model';
@@ -25,7 +26,7 @@ import { LoansService } from '../../services/loans.service';
 
 @Component({
   selector: 'sp-loans-page',
-  imports: [CurrencyPipe, DatePipe, NgClass, ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatPaginatorModule, MatProgressSpinnerModule, MatSelectModule, MatTableModule],
+  imports: [CurrencyPipe, DatePipe, NgClass, ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatPaginatorModule, MatProgressSpinnerModule, MatSelectModule, MatTableModule, ScrollableTableComponent],
   templateUrl: './loans-page.component.html',
   styleUrl: './loans-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

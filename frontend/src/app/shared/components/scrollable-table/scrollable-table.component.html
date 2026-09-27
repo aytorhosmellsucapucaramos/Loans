@@ -1,0 +1,9 @@
+<div class="frame" [class.has-overflow]="hasOverflow()">
+  @if (hasOverflow()) {
+    <span class="edge" [class.visible]="canScrollLeft()" aria-hidden="true"><mat-icon>chevron_left</mat-icon></span>
+  }
+  <ng-content />
+  @if (hasOverflow()) {
+    <span class="edge" [class.visible]="canScrollRight()" aria-hidden="true"><mat-icon>chevron_right</mat-icon></span>
+  }
+</div>

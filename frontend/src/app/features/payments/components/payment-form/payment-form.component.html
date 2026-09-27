@@ -1,8 +1,5 @@
 <h2 mat-dialog-title>Registrar pago</h2>
-<mat-dialog-content
-  ><p class="notice">
-    El saldo oficial y los estados son calculados por el backend al confirmar el pago.
-  </p>
+<mat-dialog-content>
   @if (loadError()) {
     <p class="load-error">{{ loadError() }}</p>
   }
@@ -71,7 +68,14 @@
     }
     <mat-form-field appearance="outline"
       ><mat-label>Monto pagado</mat-label
-      ><input matInput type="number" min="0.01" step="0.01" placeholder="Ej.: 100.00" formControlName="amount" />
+      ><input
+        matInput
+        type="number"
+        min="0.01"
+        step="0.01"
+        placeholder="Ej.: 100.00"
+        formControlName="amount"
+      />
       @if (form.controls.amount.touched && form.controls.amount.hasError('exceedsOutstanding')) {
         <mat-error>El monto no puede superar el saldo pendiente.</mat-error>
       } @else if (form.controls.amount.touched && form.controls.amount.invalid) {

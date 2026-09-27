@@ -12,13 +12,14 @@ import type { Role } from '../../../../core/models/role.model';
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ScrollableTableComponent } from '../../../../shared/components/scrollable-table/scrollable-table.component';
 import type { RolePayload } from '../../models/role-form.model';
 import { AccessControlApiService } from '../../services/access-control-api.service';
 import { RoleFormDialogComponent } from '../../components/role-form-dialog/role-form-dialog.component';
 
 @Component({
   selector: 'sp-access-control-page',
-  imports: [MatButtonModule, MatChipsModule, MatIconModule, MatProgressSpinnerModule, MatTableModule],
+  imports: [MatButtonModule, MatChipsModule, MatIconModule, MatProgressSpinnerModule, MatTableModule, ScrollableTableComponent],
   templateUrl: './access-control-page.component.html',
   styleUrl: './access-control-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

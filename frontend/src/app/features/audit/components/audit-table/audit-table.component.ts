@@ -3,11 +3,12 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTableModule } from '@angular/material/table';
 
+import { ScrollableTableComponent } from '../../../../shared/components/scrollable-table/scrollable-table.component';
 import type { AuditEntry } from '../../models/audit.model';
 
 @Component({
   selector: 'sp-audit-table',
-  imports: [DatePipe, NgClass, MatChipsModule, MatTableModule],
+  imports: [DatePipe, NgClass, MatChipsModule, MatTableModule, ScrollableTableComponent],
   templateUrl: './audit-table.component.html',
   styleUrl: './audit-table.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

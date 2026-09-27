@@ -1,5 +1,5 @@
 <mat-sidenav-container class="shell">
-  <mat-sidenav #drawer [mode]="isHandset() ? 'over' : 'side'" [opened]="!isHandset()" class="sidebar">
+    <mat-sidenav #drawer [mode]="isHandset() ? 'over' : 'side'" [opened]="!isHandset()" class="sidebar">
     <div class="brand"><mat-icon>account_balance</mat-icon><span>Préstamos</span></div>
     <mat-nav-list>
       @for (item of navigation; track item.path) {
@@ -14,11 +14,31 @@
 
   <mat-sidenav-content>
     <mat-toolbar color="primary">
-      @if (isHandset()) { <button mat-icon-button (click)="drawer.toggle()" aria-label="Abrir menú"><mat-icon>menu</mat-icon></button> }
       <span class="toolbar-spacer"></span>
       @if (auth.user$ | async; as user) { <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span> }
       <button mat-icon-button (click)="logout()" aria-label="Cerrar sesión"><mat-icon>logout</mat-icon></button>
     </mat-toolbar>
     <main class="content"><router-outlet /></main>
+    @if (isHandset()) {
+      <nav class="mobile-nav" aria-label="Navegación principal">
+        @for (item of primaryNavigation(); track item.path) {
+          <a mat-button [routerLink]="item.path" routerLinkActive="active" [attr.aria-label]="item.label" [attr.aria-current]="isActive(item) ? 'page' : null">
+            <span class="nav-item-content"><mat-icon aria-hidden="true">{{ item.icon }}</mat-icon><span class="nav-label">{{ item.label }}</span></span>
+          </a>
+        }
+        @if (moreNavigation().length) {
+          <button mat-button [matMenuTriggerFor]="moreMenu" class="more-button" [class.active]="isMoreActive()" aria-label="Más secciones" aria-haspopup="menu">
+            <span class="nav-item-content"><mat-icon aria-hidden="true">more_horiz</mat-icon><span class="nav-label">Más</span></span>
+          </button>
+        }
+        <mat-menu #moreMenu="matMenu" aria-label="Más secciones">
+          @for (item of moreNavigation(); track item.path) {
+            <a mat-menu-item [routerLink]="item.path" routerLinkActive="active" [attr.aria-current]="isActive(item) ? 'page' : null">
+              <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon><span>{{ item.label }}</span>
+            </a>
+          }
+        </mat-menu>
+      </nav>
+    }
   </mat-sidenav-content>
 </mat-sidenav-container>

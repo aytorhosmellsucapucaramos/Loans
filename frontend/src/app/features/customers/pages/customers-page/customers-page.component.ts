@@ -15,6 +15,7 @@ import { debounceTime, distinctUntilChanged, finalize, switchMap } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ScrollableTableComponent } from '../../../../shared/components/scrollable-table/scrollable-table.component';
 import { CustomerDetailComponent } from '../../components/customer-detail/customer-detail.component';
 import { CustomerFormComponent } from '../../components/customer-form/customer-form.component';
 import type { Customer, CustomerPayload } from '../../models/customer.model';
@@ -22,7 +23,7 @@ import { CustomersService } from '../../services/customers.service';
 
 @Component({
   selector: 'sp-customers-page',
-  imports: [DatePipe, NgClass, ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatPaginatorModule, MatProgressSpinnerModule, MatTableModule],
+  imports: [DatePipe, NgClass, ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatPaginatorModule, MatProgressSpinnerModule, MatTableModule, ScrollableTableComponent],
   templateUrl: './customers-page.component.html',
   styleUrl: './customers-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

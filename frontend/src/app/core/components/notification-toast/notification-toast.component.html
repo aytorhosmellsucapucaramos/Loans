@@ -1,0 +1,10 @@
+<section class="toast" [class]="'toast toast--' + data.type" [attr.role]="data.type === 'error' ? 'alert' : 'status'" [attr.aria-live]="data.type === 'error' ? 'assertive' : 'polite'">
+  <span class="toast__icon" aria-hidden="true"><mat-icon>{{ icon }}</mat-icon></span>
+  <div class="toast__content">
+    <span class="toast__title">{{ title }}</span>
+    <span class="toast__message">{{ data.message }}</span>
+  </div>
+  <button mat-icon-button class="toast__close" type="button" aria-label="Cerrar notificación" (click)="close()">
+    <mat-icon aria-hidden="true">close</mat-icon>
+  </button>
+</section>

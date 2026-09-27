@@ -4,3 +4,31 @@
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, 'Helvetica Neue', sans-serif; background: #f7f8fc; color: #1b1b21; }
 button, input, textarea { font: inherit; }
+
+/* Keep shared notifications clear of the app bar and Android safe area. */
+.cdk-overlay-container .prestame-toast-panel.mat-mdc-snack-bar-container {
+  width: min(520px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  margin-top: calc(72px + env(safe-area-inset-top, 0px));
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  --mdc-snackbar-container-color: transparent;
+  --mat-snack-bar-container-color: transparent;
+}
+
+.prestame-toast-panel .mdc-snackbar__surface {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.prestame-toast-panel .mat-mdc-snack-bar-label { padding: 0; }
+
+@media (max-width: 767px) {
+  .cdk-overlay-container .prestame-toast-panel.mat-mdc-snack-bar-container {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    margin-top: calc(64px + env(safe-area-inset-top, 0px));
+  }
+}

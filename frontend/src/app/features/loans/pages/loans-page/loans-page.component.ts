@@ -72,8 +72,13 @@ export class LoansPageComponent {
 
   create(): void {
     const activeCustomers = this.customers().filter((customer) => customer.isActive);
-    if (!activeCustomers.length) { this.notifications.warning('Necesitas al menos un cliente activo para registrar un préstamo.'); return; }
-    this.dialog.open(LoanFormComponent, { data: { customers: activeCustomers }, width: '720px', maxWidth: '95vw' }).afterClosed().pipe(
+    if (!activeCustomers.length && !this.auth.hasPermission('customers.create')) { this.notifications.warning('Necesitas al menos un cliente activo para registrar un préstamo.'); return; }
+    const formRef = this.dialog.open(LoanFormComponent, { data: { customers: activeCustomers }, width: '720px', maxWidth: '95vw' });
+    const customerCreatedSubscription = formRef.componentInstance.customerCreated.subscribe((customer) => {
+      this.customers.update((items) => [...items.filter((item) => item.id !== customer.id), customer]);
+    });
+    formRef.afterClosed().pipe(
+      finalize(() => customerCreatedSubscription.unsubscribe()),
       switchMap((payload: CreateLoanPayload | undefined) => payload ? this.confirm('Registrar préstamo', 'El backend calculará el total y generará las cuotas. ¿Deseas continuar?').pipe(switchMap((confirmed) => confirmed ? this.api.create(payload) : [])) : []),
     ).subscribe({ next: (loan) => { if (loan) { this.notifications.success('Préstamo registrado correctamente.'); void this.router.navigate(['/loans', loan.id]); } } });
   }

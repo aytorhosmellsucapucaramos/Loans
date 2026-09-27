@@ -52,6 +52,24 @@ export class CustomerFormComponent {
     this.form.controls.documentType.valueChanges.subscribe(() => this.form.controls.documentNumber.updateValueAndValidity());
   }
 
+  get documentInputMode(): 'numeric' | 'text' {
+    return this.form.controls.documentType.value === 'DNI' || this.form.controls.documentType.value === 'RUC' ? 'numeric' : 'text';
+  }
+
+  get documentMaxLength(): number {
+    const type = this.form.controls.documentType.value;
+    if (type === 'DNI') return 8;
+    if (type === 'RUC') return 11;
+    return 12;
+  }
+
+  get documentHint(): string {
+    const type = this.form.controls.documentType.value;
+    if (type === 'DNI') return '8 dígitos';
+    if (type === 'RUC') return '11 dígitos';
+    return '6 a 12 letras o números';
+  }
+
   save(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const value = this.form.getRawValue();

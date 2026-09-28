@@ -55,7 +55,7 @@ describe('LoanFormComponent', () => {
     }).overrideProvider(MatDialog, { useValue: customerDialog }).compileComponents();
   };
 
-  it('entrega únicamente los datos de origen para que el backend calcule el préstamo', async () => {
+  it('avanza a revisión y registra solo con la acción final', async () => {
     await configure();
     const component = TestBed.createComponent(LoanFormComponent).componentInstance;
     expect(component.form.controls.principalAmount.value).toBeNull();
@@ -67,7 +67,29 @@ describe('LoanFormComponent', () => {
     expect(component.form.controls.installmentCount.invalid).toBeTrue();
     component.form.setValue({ customerId: 'customer-1', principalAmount: 1000, interestRate: 10, paymentFrequency: 'monthly', installmentCount: 4, disbursementDate: '2026-09-15', firstInstallmentDate: '2026-10-15', observations: '' });
     component.save();
+    expect(dialogRef.close).not.toHaveBeenCalled();
+
+    component.continueToReview();
+    expect(component.currentStep()).toBe(2);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(component.canRegister).toBeTrue();
+    component.save();
     expect(dialogRef.close).toHaveBeenCalledWith(jasmine.objectContaining({ customerId: 'customer-1', interestType: 'simple', principalAmount: 1000 }));
+  });
+
+  it('vuelve a editar conservando todos los datos y bloquea avance inválido', async () => {
+    await configure();
+    const component = TestBed.createComponent(LoanFormComponent).componentInstance;
+    component.continueToReview();
+    expect(component.currentStep()).toBe(1);
+    expect(component.form.controls.principalAmount.touched).toBeTrue();
+
+    component.form.setValue({ customerId: 'customer-1', principalAmount: 1500, interestRate: 8, paymentFrequency: 'weekly', installmentCount: 6, disbursementDate: '2026-09-01', firstInstallmentDate: '2026-09-08', observations: 'Conservar observación' });
+    component.continueToReview();
+    component.backToEdit();
+
+    expect(component.currentStep()).toBe(1);
+    expect(component.form.getRawValue()).toEqual(jasmine.objectContaining({ principalAmount: 1500, interestRate: 8, paymentFrequency: 'weekly', installmentCount: 6, observations: 'Conservar observación' }));
   });
 
   it('creates customer with existing form and selects new customer without changing loan fields', async () => {
@@ -135,6 +157,7 @@ describe('LoanFormComponent', () => {
     component.form.controls.principalAmount.setValue(2000);
     expect(component.previewStale()).toBeTrue();
     expect(component.previewCurrent).toBeFalse();
+    expect(component.canRegister).toBeFalse();
     await new Promise((resolve) => setTimeout(resolve, 350));
     await fixture.whenStable();
     fixture.detectChanges();

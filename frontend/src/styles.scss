@@ -1,9 +1,105 @@
 @import '@angular/material/prebuilt-themes/azure-blue.css';
 
+:root {
+  --sp-brand: #1d4ed8;
+  --sp-brand-soft: #e8f0fe;
+  --sp-page: #f4f7fb;
+  --sp-surface: #fff;
+  --sp-surface-soft: #f8faff;
+  --sp-surface-hover: #f6f8fc;
+  --sp-surface-header: #f1f4fa;
+  --sp-border: #e1e5ee;
+  --sp-border-strong: #d8deea;
+  --sp-border-soft: #d8e1f0;
+  --sp-border-subtle: #eceff4;
+  --sp-text: #1b1b21;
+  --sp-text-soft: #46536a;
+  --sp-text-body: #384860;
+  --sp-text-muted: #5f6368;
+  --sp-success: #0d652d;
+  --sp-success-strong: #137333;
+  --sp-success-soft: #d9f7df;
+  --sp-danger: #8b1e1e;
+  --sp-danger-soft: #ffe1e1;
+  --sp-error: #b3261e;
+  --sp-error-soft: #fce8e6;
+  --sp-warning: #8a4b00;
+  --sp-warning-soft: #fff3d7;
+  --sp-brand-subtle: #eef4ff;
+  --sp-neutral-soft: #eef0f2;
+  --sp-info: #354a67;
+  --sp-reversal: #7b1fa2;
+  --sp-radius: 12px;
+  --sp-focus-ring: 0 0 0 3px rgb(29 78 216 / 24%);
+  --sp-shadow: 0 2px 10px rgb(30 50 90 / 5%);
+}
+
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, 'Helvetica Neue', sans-serif; background: #f7f8fc; color: #1b1b21; }
+body { margin: 0; font-family: Roboto, 'Helvetica Neue', sans-serif; background: var(--sp-page); color: var(--sp-text); }
 button, input, textarea { font: inherit; }
+
+mat-sidenav-container,
+mat-sidenav-content { background: var(--sp-page); }
+
+.content { color: var(--sp-text); }
+.page-header { padding-bottom: .9rem; border-bottom: 1px solid var(--sp-border); }
+.page-header h1 { color: var(--sp-text); font-size: clamp(1.4rem, 2vw, 1.8rem); letter-spacing: -.02em; }
+.page-header p:last-child { color: var(--sp-text-muted); }
+.eyebrow { color: var(--sp-brand); letter-spacing: .025em; text-transform: uppercase; font-size: .76rem; }
+
+.mat-mdc-card {
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius) !important;
+  background: var(--sp-surface);
+  box-shadow: var(--sp-shadow) !important;
+}
+
+.mat-mdc-card:hover { border-color: var(--sp-border-strong); }
+.mat-mdc-card-content { color: var(--sp-text); }
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  border: 1px solid var(--sp-border);
+  border-radius: 16px;
+  background: var(--sp-surface);
+  box-shadow: 0 16px 48px rgb(25 38 68 / 18%);
+}
+
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-outline-color: var(--sp-border-strong);
+  --mdc-outlined-text-field-hover-outline-color: var(--sp-brand);
+  --mdc-outlined-text-field-focus-outline-color: var(--sp-brand);
+  --mdc-outlined-text-field-label-text-color: var(--sp-text-muted);
+  --mdc-outlined-text-field-input-text-color: var(--sp-text);
+}
+
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing { border-width: 2px; }
+
+.mat-mdc-table { background: var(--sp-surface); }
+.mat-mdc-header-row { background: var(--sp-surface-soft); }
+.mat-mdc-header-cell { color: var(--sp-text-soft); font-weight: 600; }
+.mat-mdc-cell { color: var(--sp-text-body); }
+.mat-mdc-cell, .mat-mdc-header-cell { border-bottom-color: var(--sp-border); }
+.mat-mdc-row { background: var(--sp-surface); transition: background-color .15s ease; }
+.mat-mdc-row:hover { background: var(--sp-surface-hover); }
+.mat-mdc-paginator { color: var(--sp-text-muted); }
+
+:focus-visible { outline: 2px solid var(--sp-brand); outline-offset: 2px; box-shadow: var(--sp-focus-ring); }
+button.mat-mdc-button-base { transition: background-color .15s ease, box-shadow .15s ease; }
+.mat-mdc-menu-panel { border: 1px solid var(--sp-border); border-radius: 12px !important; box-shadow: 0 12px 32px rgb(30 50 90 / 14%) !important; }
+.mat-mdc-chip { border: 1px solid var(--sp-border); }
+
+.table-container { border: 1px solid var(--sp-border); box-shadow: var(--sp-shadow); }
+.state, .empty, .empty-movements {
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius);
+  background: var(--sp-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
 
 /* Keep shared notifications clear of the app bar and Android safe area. */
 .cdk-overlay-container .prestame-toast-panel.mat-mdc-snack-bar-container {

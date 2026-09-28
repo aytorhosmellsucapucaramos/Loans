@@ -50,6 +50,7 @@ export class LoanFormComponent {
   readonly previewLoading = signal(false);
   readonly previewStale = signal(false);
   readonly previewError = signal(false);
+  readonly currentStep = signal<1 | 2>(1);
   private readonly reviewRevision = signal(0);
   private previewGeneration = 0;
   @Output() readonly customerCreated = new EventEmitter<Customer>();
@@ -147,6 +148,22 @@ export class LoanFormComponent {
     return this.preview() !== null && !this.previewStale() && !this.previewLoading() && !this.previewError();
   }
 
+  get canRegister(): boolean {
+    return this.currentStep() === 2 && this.form.valid && this.previewCurrent;
+  }
+
+  continueToReview(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    this.currentStep.set(2);
+  }
+
+  backToEdit(): void {
+    this.currentStep.set(1);
+  }
+
   createCustomer(): void {
     if (!this.auth.hasPermission('customers.create') || this.creatingCustomer()) return;
     this.dialog.open(CustomerFormComponent, {
@@ -169,7 +186,7 @@ export class LoanFormComponent {
   }
 
   save(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (!this.canRegister) return;
     const payload = this.toPayload();
     if (payload) this.dialogRef.close(payload);
   }

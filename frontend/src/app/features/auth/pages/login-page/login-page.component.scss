@@ -1,4 +1,7 @@
-.login-page { display: grid; min-height: 100vh; padding: 1rem; place-items: center; background: linear-gradient(135deg, #eaf1ff, #f7f8fc); }
-.login-card { width: min(100%, 420px); padding: 1rem; }
-form { display: grid; gap: .5rem; margin-top: 1.5rem; }
+.login-page { display: grid; min-height: 100vh; padding: 1rem; place-items: center; background: linear-gradient(135deg, var(--sp-brand-soft), var(--sp-page)); }
+.login-card { width: min(100%, 420px); padding: 1.25rem; }
+.login-card mat-card-header { margin-bottom: .4rem; }
+.login-card mat-card-title { color: var(--sp-text); font-size: 1.35rem; }
+.login-card mat-card-subtitle { color: var(--sp-text-muted); }
+form { display: grid; gap: .65rem; margin-top: 1.25rem; }
 mat-form-field, button[type='submit'] { width: 100%; }

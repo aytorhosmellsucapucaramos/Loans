@@ -202,7 +202,7 @@ Todos los endpoints de reportes son de solo lectura y requieren `reports.read`. 
 
 - `GET /api/reports/summary`: clientes activos, préstamos activos, desembolsado, pendiente, cobrado, cuotas vencidas, pagos del día y efectivo esperado de las cajas abiertas.
 - `GET /api/reports/loans`: acepta `page`, `pageSize`, `fromDate`, `toDate`, `customerId` y `status`; la fecha se aplica al desembolso.
-- `GET /api/reports/installments`: acepta `page`, `pageSize`, `fromDate`, `toDate` y `status`; la fecha se aplica al vencimiento. Una cuota con saldo y vencimiento anterior al día actual en `America/Lima` se reporta como vencida aunque su campo persistido aún no se haya actualizado.
+- `GET /api/reports/installments`: acepta `page`, `pageSize`, `fromDate`, `toDate` y `status`; la fecha se aplica al vencimiento. Cada fila incluye `customerName` para identificación visual sin exponer identificadores al usuario. Una cuota con saldo y vencimiento anterior al día actual en `America/Lima` se reporta como vencida aunque su campo persistido aún no se haya actualizado. El Dashboard reutiliza esta consulta con `status=pending` y el día actual de Lima para vencimientos de hoy, y con `status=overdue` para atrasos; ambos resúmenes usan los totales calculados en PostgreSQL.
 - `GET /api/reports/collections`: acepta `page`, `pageSize`, `fromDate` y `toDate`; considera solo pagos registrados y presenta totales por día y método.
 - `GET /api/reports/cash`: acepta `page`, `pageSize`, `fromDate`, `toDate`, `cashSessionId` y `status`; solo los movimientos físicos (`cash`) afectan el saldo esperado.
 

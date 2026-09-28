@@ -1,54 +1,66 @@
 <h2 mat-dialog-title>Registrar préstamo</h2>
 <mat-dialog-content>
-  <form [formGroup]="form" class="form" (ngSubmit)="save()">
-    <div class="customer-picker full">
-      <mat-form-field appearance="outline"><mat-label>Cliente activo</mat-label><mat-select formControlName="customerId">@for (customer of customers(); track customer.id) { <mat-option [value]="customer.id">{{ customer.firstName }} {{ customer.lastName }} · {{ customer.documentType }} {{ customer.documentNumber }}</mat-option> }</mat-select>@if (form.controls.customerId.touched && form.controls.customerId.invalid) { <mat-error>Selecciona un cliente.</mat-error> }</mat-form-field>
-      @if (auth.hasPermission('customers.create')) {
-        <button mat-stroked-button class="customer-create" type="button" [disabled]="creatingCustomer()" (click)="createCustomer()">
-          <mat-icon aria-hidden="true">person_add</mat-icon>
-          {{ creatingCustomer() ? 'Guardando cliente…' : 'Crear cliente' }}
-        </button>
+  <ol class="loan-progress" aria-label="Progreso del registro de préstamo">
+    <li [class.active]="currentStep() === 1" [class.completed]="currentStep() === 2" [attr.aria-current]="currentStep() === 1 ? 'step' : null"><span>@if (currentStep() === 2) { <mat-icon aria-hidden="true">check</mat-icon> } @else { 1 }</span>Datos del préstamo</li>
+    <li [class.active]="currentStep() === 2" [attr.aria-current]="currentStep() === 2 ? 'step' : null"><span>2</span>Revisa tu préstamo</li>
+  </ol>
+  <!-- <p class="step-count" aria-live="polite">Paso {{ currentStep() }} de 2</p> -->
+
+  @if (currentStep() === 1) {
+    <h3 class="step-title">Datos del préstamo</h3>
+    <form [formGroup]="form" class="form" (ngSubmit)="continueToReview()">
+      <div class="customer-picker full">
+        <mat-form-field appearance="outline"><mat-label>Cliente activo</mat-label><mat-select formControlName="customerId">@for (customer of customers(); track customer.id) { <mat-option [value]="customer.id">{{ customer.firstName }} {{ customer.lastName }} · {{ customer.documentType }} {{ customer.documentNumber }}</mat-option> }</mat-select>@if (form.controls.customerId.touched && form.controls.customerId.invalid) { <mat-error>Selecciona un cliente.</mat-error> }</mat-form-field>
+        @if (auth.hasPermission('customers.create')) {
+          <button mat-stroked-button class="customer-create" type="button" [disabled]="creatingCustomer()" (click)="createCustomer()">
+            <mat-icon aria-hidden="true">person_add</mat-icon>
+            {{ creatingCustomer() ? 'Guardando cliente…' : 'Crear cliente' }}
+          </button>
+        }
+      </div>
+      <mat-form-field appearance="outline"><mat-label>Monto solicitado</mat-label><input matInput type="number" min="0.01" step="0.01" placeholder="Ej.: 10000" formControlName="principalAmount" />@if (form.controls.principalAmount.touched && form.controls.principalAmount.invalid) { <mat-error>Ingresa un monto mayor que cero.</mat-error> }</mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Tasa de interés (%)</mat-label><input matInput type="number" min="0" step="0.0001" placeholder="Ej.: 5" formControlName="interestRate" />@if (form.controls.interestRate.touched && form.controls.interestRate.invalid) { <mat-error>Ingresa una tasa válida.</mat-error> }</mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Frecuencia</mat-label><mat-select formControlName="paymentFrequency">@for (frequency of frequencies; track frequency.value) { <mat-option [value]="frequency.value">{{ frequency.label }}</mat-option> }</mat-select></mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Número de cuotas</mat-label><input matInput type="number" min="1" max="360" step="1" placeholder="Ej.: 12" formControlName="installmentCount" />@if (form.controls.installmentCount.touched && form.controls.installmentCount.invalid) { <mat-error>Ingresa entre 1 y 360 cuotas.</mat-error> }</mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Fecha de desembolso</mat-label><input matInput type="date" formControlName="disbursementDate" />@if (form.controls.disbursementDate.touched && form.controls.disbursementDate.invalid) { <mat-error>La fecha es obligatoria.</mat-error> }</mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Fecha de primera cuota</mat-label><input matInput type="date" formControlName="firstInstallmentDate" />@if (form.controls.firstInstallmentDate.touched && (form.controls.firstInstallmentDate.invalid || form.hasError('firstInstallmentDate'))) { <mat-error>Debe ser posterior al desembolso.</mat-error> }</mat-form-field>
+      <mat-form-field appearance="outline" class="full"><mat-label>Observaciones</mat-label><textarea matInput rows="2" maxlength="1000" formControlName="observations"></textarea></mat-form-field>
+    </form>
+  } @else {
+      <header class="review-heading"><mat-icon aria-hidden="true">fact_check</mat-icon><div><h3 id="loan-review-title">Revisa tu préstamo</h3><p>Verifica el cronograma antes de registrar.</p></div></header>
+
+      <div class="review-grid review-summary">
+        <div><span>Cliente</span><strong>{{ selectedCustomer ? selectedCustomer.firstName + ' ' + selectedCustomer.lastName : 'Pendiente de selección' }}</strong></div>
+        <div><span>Monto solicitado</span><strong>@if (reviewAmount !== null) { {{ reviewAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else { Pendiente }</strong></div>
+        <div><span>Tasa de interés</span><strong>@if (reviewRate !== null) { {{ reviewRate }}% · interés simple } @else { Pendiente }</strong></div>
+        <div><span>Interés calculado</span><strong>@if (previewCurrent) { {{ preview()?.totalInterestAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else { Pendiente }</strong></div>
+        <div class="total-card"><span>Total a pagar</span><strong>@if (previewCurrent) { {{ preview()?.totalAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else { Pendiente }</strong></div>
+        <div><span>Número de cuotas</span><strong>{{ reviewInstallmentCount ?? 'Pendiente' }}</strong></div>
+        <div><span>Frecuencia</span><strong>{{ reviewFrequency }}</strong></div>
+      </div>
+
+      @if (reviewIssues.length) { <p class="review-issues"><mat-icon aria-hidden="true">error_outline</mat-icon><span>Completa o corrige: {{ reviewIssues.join(', ') }}.</span></p> }
+      @if (previewCurrent) {
+        <section class="preview-schedule" aria-label="Cronograma de cuotas calculado">
+          <h4>Cronograma de cuotas</h4>
+          <div class="schedule-scroll"><table><thead><tr><th>Cuota</th><th>Vencimiento</th><th>Capital</th><th>Interés</th><th>Importe</th></tr></thead><tbody>
+            @for (installment of preview()!.installments; track installment.installmentNumber) {
+              <tr><td data-label="Cuota">{{ installment.installmentNumber }}</td><td data-label="Vencimiento">{{ installment.dueDate | date:'dd/MM/yyyy':'UTC':'es-PE' }}</td><td data-label="Capital">{{ installment.principalAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</td><td data-label="Interés">{{ installment.interestAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</td><td data-label="Importe"><strong>{{ installment.scheduledAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</strong></td></tr>
+            }
+          </tbody></table></div>
+        </section>
+      } @else {
+        <p class="review-note">El total y las cuotas aparecerán cuando la vista previa esté actualizada. El backend volverá a validar y calcular al registrar.</p>
       }
-    </div>
-    <mat-form-field appearance="outline"><mat-label>Monto solicitado</mat-label><input matInput type="number" min="0.01" step="0.01" placeholder="Ej.: 10000" formControlName="principalAmount" />@if (form.controls.principalAmount.touched && form.controls.principalAmount.invalid) { <mat-error>Ingresa un monto mayor que cero.</mat-error> }</mat-form-field>
-    <mat-form-field appearance="outline"><mat-label>Tasa de interés (%)</mat-label><input matInput type="number" min="0" step="0.0001" placeholder="Ej.: 5" formControlName="interestRate" />@if (form.controls.interestRate.touched && form.controls.interestRate.invalid) { <mat-error>Ingresa una tasa válida.</mat-error> }</mat-form-field>
-    <mat-form-field appearance="outline"><mat-label>Frecuencia</mat-label><mat-select formControlName="paymentFrequency">@for (frequency of frequencies; track frequency.value) { <mat-option [value]="frequency.value">{{ frequency.label }}</mat-option> }</mat-select></mat-form-field>
-    <mat-form-field appearance="outline"><mat-label>Número de cuotas</mat-label><input matInput type="number" min="1" max="360" step="1" placeholder="Ej.: 12" formControlName="installmentCount" />@if (form.controls.installmentCount.touched && form.controls.installmentCount.invalid) { <mat-error>Ingresa entre 1 y 360 cuotas.</mat-error> }</mat-form-field>
-    <mat-form-field appearance="outline"><mat-label>Fecha de desembolso</mat-label><input matInput type="date" formControlName="disbursementDate" />@if (form.controls.disbursementDate.touched && form.controls.disbursementDate.invalid) { <mat-error>La fecha es obligatoria.</mat-error> }</mat-form-field>
-    <mat-form-field appearance="outline"><mat-label>Fecha de primera cuota</mat-label><input matInput type="date" formControlName="firstInstallmentDate" />@if (form.controls.firstInstallmentDate.touched && (form.controls.firstInstallmentDate.invalid || form.hasError('firstInstallmentDate'))) { <mat-error>Debe ser posterior al desembolso.</mat-error> }</mat-form-field>
-    <mat-form-field appearance="outline" class="full"><mat-label>Observaciones</mat-label><textarea matInput rows="2" maxlength="1000" formControlName="observations"></textarea></mat-form-field>
-  </form>
-  <section class="loan-review" aria-labelledby="loan-review-title" aria-live="polite">
-    <header class="review-heading"><mat-icon aria-hidden="true">fact_check</mat-icon><div><h3 id="loan-review-title">Revisa tu préstamo</h3><p>Confirma los datos antes de continuar.</p></div></header>
-    @if (previewLoading()) { <div class="preview-status" role="status"><mat-spinner diameter="18" />Calculando vista previa…</div> }
-    @else if (previewStale()) { <div class="preview-status stale" role="status"><mat-icon aria-hidden="true">sync</mat-icon>Vista previa desactualizada. Espera el nuevo cálculo.</div> }
-    @else if (previewError()) { <div class="preview-status error" role="status"><mat-icon aria-hidden="true">error_outline</mat-icon>No se pudo actualizar la vista previa.</div> }
-    @else if (previewCurrent) { <div class="preview-status current" role="status"><mat-icon aria-hidden="true">check_circle</mat-icon>Vista previa actualizada</div> }
-    @else { <div class="preview-status" role="status"><mat-icon aria-hidden="true">info</mat-icon>Completa los datos para calcular la vista previa.</div> }
-
-    <div class="review-grid">
-      <div><span>Cliente</span><strong>{{ selectedCustomer ? selectedCustomer.firstName + ' ' + selectedCustomer.lastName : 'Pendiente de selección' }}</strong></div>
-      <div><span>Monto solicitado</span><strong>@if (reviewAmount !== null) { {{ reviewAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else { Pendiente }</strong></div>
-      <div><span>Tasa de interés</span><strong>@if (reviewRate !== null) { {{ reviewRate }}% · interés simple } @else { Pendiente }</strong></div>
-      <div><span>Interés calculado</span><strong>@if (previewCurrent) { {{ preview()?.totalInterestAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else { Pendiente }</strong></div>
-      <div><span>Total a pagar</span><strong>@if (previewCurrent) { {{ preview()?.totalAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else { Pendiente }</strong></div>
-      <div><span>Número de cuotas</span><strong>{{ reviewInstallmentCount ?? 'Pendiente' }}</strong></div>
-      <div><span>Frecuencia</span><strong>{{ reviewFrequency }}</strong></div>
-    </div>
-
-    @if (reviewIssues.length) { <p class="review-issues"><mat-icon aria-hidden="true">error_outline</mat-icon><span>Completa o corrige: {{ reviewIssues.join(', ') }}.</span></p> }
-    @if (previewCurrent) {
-      <section class="preview-schedule" aria-label="Cronograma de cuotas calculado">
-        <h4>Cronograma de cuotas</h4>
-        <div class="schedule-scroll"><table><thead><tr><th>Cuota</th><th>Vencimiento</th><th>Capital</th><th>Interés</th><th>Importe</th></tr></thead><tbody>
-          @for (installment of preview()!.installments; track installment.installmentNumber) {
-            <tr><td data-label="Cuota">{{ installment.installmentNumber }}</td><td data-label="Vencimiento">{{ installment.dueDate | date:'dd/MM/yyyy':'UTC':'es-PE' }}</td><td data-label="Capital">{{ installment.principalAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</td><td data-label="Interés">{{ installment.interestAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</td><td data-label="Importe"><strong>{{ installment.scheduledAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</strong></td></tr>
-          }
-        </tbody></table></div>
-      </section>
-    } @else {
-      <p class="review-note">Interés, total y cuotas aparecerán al obtener una vista previa válida. El backend volverá a calcularlos al registrar.</p>
-    }
-  </section>
+  }
 </mat-dialog-content>
-<mat-dialog-actions align="end"><button mat-button mat-dialog-close>Cancelar</button><button mat-flat-button color="primary" (click)="save()">Continuar a confirmación</button></mat-dialog-actions>
+<mat-dialog-actions align="end">
+  @if (currentStep() === 2) { <button mat-button type="button" (click)="backToEdit()">Volver a editar</button> }
+  <span class="action-spacer"></span>
+  <button mat-button mat-dialog-close>Cancelar</button>
+  @if (currentStep() === 1) {
+    <button mat-flat-button color="primary" type="button" (click)="continueToReview()">Continuar y revisar</button>
+  } @else {
+    <button mat-flat-button color="primary" type="button" [disabled]="!canRegister" (click)="save()">Registrar préstamo</button>
+  }
+</mat-dialog-actions>

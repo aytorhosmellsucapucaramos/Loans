@@ -16,7 +16,7 @@ import { SimpleInterestStrategy } from '../../modules/interest/domain/simple-int
 import { InstallmentScheduleGenerator } from '../../modules/installments/application/installment-schedule.generator.js';
 import { GetInstallmentUseCase, ListLoanInstallmentsUseCase } from '../../modules/installments/application/installment.use-cases.js';
 import { PostgresInstallmentRepository } from '../../modules/installments/infrastructure/postgres-installment.repository.js';
-import { CreateLoanUseCase, GetLoanUseCase, ListLoansUseCase, SetLoanStatusUseCase } from '../../modules/loans/application/loan.use-cases.js';
+import { CreateLoanUseCase, GetLoanUseCase, ListLoansUseCase, PreviewLoanUseCase, SetLoanStatusUseCase } from '../../modules/loans/application/loan.use-cases.js';
 import { PinoLoanAuditLogger } from '../../modules/loans/infrastructure/pino-loan-audit-logger.js';
 import { PostgresLoanRepository } from '../../modules/loans/infrastructure/postgres-loan.repository.js';
 import { CancelPaymentUseCase, GetPaymentUseCase, ListInstallmentPaymentsUseCase, ListLoanPaymentsUseCase, ListPaymentsUseCase, RegisterPaymentUseCase } from '../../modules/payments/application/payment.use-cases.js';
@@ -78,6 +78,7 @@ export const createContainer = (database: Pool = pool) => {
     setCustomerStatus: new SetCustomerStatusUseCase(customers, customerAudit),
     listLoans: new ListLoansUseCase(loans),
     getLoan: new GetLoanUseCase(loans, installments),
+    previewLoan: new PreviewLoanUseCase(customers, schedule),
     createLoan: new CreateLoanUseCase(loans, customers, schedule, loanAudit),
     setLoanStatus: new SetLoanStatusUseCase(loans, loanAudit),
     getInstallment: new GetInstallmentUseCase(installments),

@@ -1,3 +1,5 @@
+import { registerLocaleData } from '@angular/common';
+import localePe from '@angular/common/locales/es-PE';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -8,7 +10,10 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { CustomerFormComponent } from '../../../customers/components/customer-form/customer-form.component';
 import { CustomersService } from '../../../customers/services/customers.service';
 import type { Customer, CustomerPayload } from '../../../customers/models/customer.model';
+import { LoansService } from '../../services/loans.service';
 import { LoanFormComponent } from './loan-form.component';
+
+registerLocaleData(localePe);
 
 describe('LoanFormComponent', () => {
   const dialogRef = { close: jasmine.createSpy('close') };
@@ -17,6 +22,8 @@ describe('LoanFormComponent', () => {
   const customersApi = { create: jasmine.createSpy('create').and.returnValue(of({ id: 'customer-2', firstName: 'Rosa', lastName: 'Mamani', documentType: 'DNI', documentNumber: '87654321', isActive: true } as Customer)) };
   const auth = { hasPermission: jasmine.createSpy('hasPermission').and.returnValue(true) };
   const notifications = { success: jasmine.createSpy('success') };
+  const loanPreview = { customerId: 'customer-1', principalAmount: '1000.00', interestRate: '10.0000', interestType: 'simple' as const, paymentFrequency: 'monthly' as const, installmentCount: 4, disbursementDate: '2026-01-01', firstInstallmentDate: '2026-02-01', totalInterestAmount: '100.00', totalAmount: '1100.00', installments: [{ installmentNumber: 1, dueDate: '2026-02-01', principalAmount: '250.00', interestAmount: '25.00', scheduledAmount: '275.00', outstandingAmount: '275.00', status: 'pending' as const }] };
+  const loansApi = { preview: jasmine.createSpy('preview').and.returnValue(of(loanPreview)) };
   const createdCustomer: Customer = { id: 'customer-2', firstName: 'Rosa', lastName: 'Mamani', documentType: 'DNI', documentNumber: '87654321', phone: '987654321', email: null, address: 'Jr. Lima 123', isActive: true, createdAt: '', updatedAt: '' };
   const customerPayload: CustomerPayload = { documentType: 'DNI', documentNumber: '87654321', firstName: 'Rosa', lastName: 'Mamani', phone: '987654321', address: 'Jr. Lima 123' };
 
@@ -29,6 +36,8 @@ describe('LoanFormComponent', () => {
     customersApi.create.and.returnValue(of(createdCustomer));
     auth.hasPermission.and.returnValue(true);
     notifications.success.calls.reset();
+    loansApi.preview.calls.reset();
+    loansApi.preview.and.returnValue(of(loanPreview));
   });
 
   const configure = async (): Promise<void> => {
@@ -41,6 +50,7 @@ describe('LoanFormComponent', () => {
         { provide: CustomersService, useValue: customersApi },
         { provide: AuthService, useValue: auth },
         { provide: NotificationService, useValue: notifications },
+        { provide: LoansService, useValue: loansApi },
       ],
     }).overrideProvider(MatDialog, { useValue: customerDialog }).compileComponents();
   };
@@ -104,5 +114,44 @@ describe('LoanFormComponent', () => {
 
     expect(customerDialog.open).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('.customer-create')).toBeNull();
+  });
+
+  it('updates loan summary from official preview and marks it stale when fields change', async () => {
+    await configure();
+    const fixture = TestBed.createComponent(LoanFormComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component.form.patchValue({ customerId: 'customer-1', principalAmount: 1000, interestRate: 10, installmentCount: 4, disbursementDate: '2026-01-01', firstInstallmentDate: '2026-02-01' });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(loansApi.preview).toHaveBeenCalledWith(jasmine.objectContaining({ customerId: 'customer-1', principalAmount: 1000, interestRate: 10 }));
+    expect(component.selectedCustomer?.firstName).toBe('Ana');
+    expect(component.preview()?.totalInterestAmount).toBe('100.00');
+    expect(component.preview()?.totalAmount).toBe('1100.00');
+    expect(component.previewCurrent).toBeTrue();
+
+    component.form.controls.principalAmount.setValue(2000);
+    expect(component.previewStale()).toBeTrue();
+    expect(component.previewCurrent).toBeFalse();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(loansApi.preview).toHaveBeenCalledTimes(2);
+    expect(component.previewCurrent).toBeTrue();
+  });
+
+  it('does not send loan when form data is invalid', async () => {
+    await configure();
+    const component = TestBed.createComponent(LoanFormComponent).componentInstance;
+    component.form.patchValue({ customerId: 'customer-1', principalAmount: 0, interestRate: 10, installmentCount: 0 });
+
+    component.save();
+
+    expect(dialogRef.close).not.toHaveBeenCalled();
+    expect(component.reviewIssues).toContain('monto');
+    expect(component.reviewIssues).toContain('número de cuotas');
   });
 });

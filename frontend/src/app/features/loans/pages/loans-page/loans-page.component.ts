@@ -79,7 +79,7 @@ export class LoansPageComponent {
     });
     formRef.afterClosed().pipe(
       finalize(() => customerCreatedSubscription.unsubscribe()),
-      switchMap((payload: CreateLoanPayload | undefined) => payload ? this.confirm('Registrar préstamo', 'El backend calculará el total y generará las cuotas. ¿Deseas continuar?').pipe(switchMap((confirmed) => confirmed ? this.api.create(payload) : [])) : []),
+      switchMap((payload: CreateLoanPayload | undefined) => payload ? this.confirm('Confirmar registro', 'El servidor volverá a validar y calcular el préstamo antes de guardarlo. ¿Confirmas el registro?').pipe(switchMap((confirmed) => confirmed ? this.api.create(payload) : [])) : []),
     ).subscribe({ next: (loan) => { if (loan) { this.notifications.success('Préstamo registrado correctamente.'); void this.router.navigate(['/loans', loan.id]); } } });
   }
 

@@ -32,6 +32,30 @@ export interface Loan {
 
 export interface LoanDetail extends Loan { installments: Installment[]; }
 
+export interface LoanPreviewInstallment {
+  installmentNumber: number;
+  dueDate: string;
+  principalAmount: string;
+  interestAmount: string;
+  scheduledAmount: string;
+  outstandingAmount: string;
+  status: 'pending';
+}
+
+export interface LoanPreview {
+  customerId: string;
+  principalAmount: string;
+  interestRate: string;
+  interestType: InterestType;
+  paymentFrequency: PaymentFrequency;
+  installmentCount: number;
+  disbursementDate: string;
+  firstInstallmentDate: string;
+  totalInterestAmount: string;
+  totalAmount: string;
+  installments: LoanPreviewInstallment[];
+}
+
 export interface CreateLoanPayload {
   customerId: string;
   principalAmount: number;

@@ -1,5 +1,5 @@
 import { AppError } from '../../src/shared/errors/app-error.js';
-import { CreateLoanUseCase } from '../../src/modules/loans/application/loan.use-cases.js';
+import { CreateLoanUseCase, PreviewLoanUseCase } from '../../src/modules/loans/application/loan.use-cases.js';
 import { Loan } from '../../src/modules/loans/domain/loan.js';
 import type { LoanRepository } from '../../src/modules/loans/domain/loan-repository.js';
 import { Customer } from '../../src/modules/customers/domain/customer.js';
@@ -14,7 +14,9 @@ describe('CreateLoanUseCase', () => {
   const customers: CustomerRepository = { create: jest.fn(), findByDocument: jest.fn(), findPage: jest.fn(), update: jest.fn(), updateStatus: jest.fn(), findById: jest.fn() };
   const loans: LoanRepository = { findById: jest.fn(), findPage: jest.fn(), updateStatus: jest.fn(), createWithInstallments: jest.fn() };
   const audit = { record: jest.fn() };
-  const useCase = new CreateLoanUseCase(loans, customers, new InstallmentScheduleGenerator(new SimpleInterestStrategy()), audit);
+  const schedule = new InstallmentScheduleGenerator(new SimpleInterestStrategy());
+  const useCase = new CreateLoanUseCase(loans, customers, schedule, audit);
+  const previewUseCase = new PreviewLoanUseCase(customers, schedule);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -28,6 +30,23 @@ describe('CreateLoanUseCase', () => {
     expect(loans.createWithInstallments).toHaveBeenCalledWith(expect.objectContaining({ totalAmount: '1100.00' }), expect.any(Array));
     expect((loans.createWithInstallments as jest.Mock).mock.calls[0]?.[1]).toHaveLength(4);
     expect(audit.record).toHaveBeenCalledWith('loan.created', 'actor-1', 'loan-1');
+  });
+
+  it('previsualiza importes y vencimientos iguales al registro sin escribir ni auditar', async () => {
+    const preview = await previewUseCase.execute(input);
+
+    expect(preview.totalInterestAmount).toBe('100.00');
+    expect(preview.totalAmount).toBe('1100.00');
+    expect(preview.installments).toHaveLength(4);
+    expect(preview.installments[0]).toMatchObject({ installmentNumber: 1, dueDate: '2026-02-01', principalAmount: '250.00', interestAmount: '25.00', scheduledAmount: '275.00' });
+    expect(loans.createWithInstallments).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
+
+    await useCase.execute(input, 'actor-1');
+    const [savedLoan, savedInstallments] = (loans.createWithInstallments as jest.Mock).mock.calls[0] as [Record<string, string>, Array<Record<string, unknown>>];
+    expect(preview.totalAmount).toBe(savedLoan.totalAmount);
+    expect(preview.totalInterestAmount).toBe((Number(savedLoan.totalAmount) - Number(savedLoan.principalAmount)).toFixed(2));
+    expect(preview.installments).toEqual(savedInstallments.map(({ loanId: _loanId, ...installment }) => installment));
   });
 
   it.each([

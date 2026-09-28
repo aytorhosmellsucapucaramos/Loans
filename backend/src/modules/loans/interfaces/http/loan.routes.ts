@@ -16,6 +16,7 @@ export const loanRouter = (container: AppContainer): Router => {
   router.use(authenticate(container.tokenService, container.users));
   router.get('/', requirePermission('loans.read'), validateLoanQuery(loanListQuerySchema), asyncHandler(controller.list));
   router.get('/:id', requirePermission('loans.read'), asyncHandler((req, res, next) => { validateId(stringParam(req.params.id, 'id')); return controller.getById(req, res, next); }));
+  router.post('/preview', requirePermission('loans.create'), validateBody(createLoanSchema), asyncHandler(controller.preview));
   router.post('/', requirePermission('loans.create'), validateBody(createLoanSchema), asyncHandler(controller.create));
   router.patch('/:id/status', requirePermission('loans.update'), validateBody(loanStatusSchema), asyncHandler((req, res, next) => { validateId(stringParam(req.params.id, 'id')); return controller.updateStatus(req, res, next); }));
   router.get('/:loanId/installments', requirePermission('installments.read'), asyncHandler((req, res, next) => { validateId(stringParam(req.params.loanId, 'loanId')); return controller.listInstallments(req, res, next); }));

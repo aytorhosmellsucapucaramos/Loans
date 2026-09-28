@@ -18,5 +18,37 @@
     <mat-form-field appearance="outline"><mat-label>Fecha de primera cuota</mat-label><input matInput type="date" formControlName="firstInstallmentDate" />@if (form.controls.firstInstallmentDate.touched && (form.controls.firstInstallmentDate.invalid || form.hasError('firstInstallmentDate'))) { <mat-error>Debe ser posterior al desembolso.</mat-error> }</mat-form-field>
     <mat-form-field appearance="outline" class="full"><mat-label>Observaciones</mat-label><textarea matInput rows="2" maxlength="1000" formControlName="observations"></textarea></mat-form-field>
   </form>
+  <section class="loan-review" aria-labelledby="loan-review-title" aria-live="polite">
+    <header class="review-heading"><mat-icon aria-hidden="true">fact_check</mat-icon><div><h3 id="loan-review-title">Revisa tu préstamo</h3><p>Confirma los datos antes de continuar.</p></div></header>
+    @if (previewLoading()) { <div class="preview-status" role="status"><mat-spinner diameter="18" />Calculando vista previa…</div> }
+    @else if (previewStale()) { <div class="preview-status stale" role="status"><mat-icon aria-hidden="true">sync</mat-icon>Vista previa desactualizada. Espera el nuevo cálculo.</div> }
+    @else if (previewError()) { <div class="preview-status error" role="status"><mat-icon aria-hidden="true">error_outline</mat-icon>No se pudo actualizar la vista previa.</div> }
+    @else if (previewCurrent) { <div class="preview-status current" role="status"><mat-icon aria-hidden="true">check_circle</mat-icon>Vista previa actualizada</div> }
+    @else { <div class="preview-status" role="status"><mat-icon aria-hidden="true">info</mat-icon>Completa los datos para calcular la vista previa.</div> }
+
+    <div class="review-grid">
+      <div><span>Cliente</span><strong>{{ selectedCustomer ? selectedCustomer.firstName + ' ' + selectedCustomer.lastName : 'Pendiente de selección' }}</strong></div>
+      <div><span>Monto solicitado</span><strong>@if (reviewAmount !== null) { {{ reviewAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else { Pendiente }</strong></div>
+      <div><span>Tasa de interés</span><strong>@if (reviewRate !== null) { {{ reviewRate }}% · interés simple } @else { Pendiente }</strong></div>
+      <div><span>Interés calculado</span><strong>@if (previewCurrent) { {{ preview()?.totalInterestAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else { Pendiente }</strong></div>
+      <div><span>Total a pagar</span><strong>@if (previewCurrent) { {{ preview()?.totalAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else { Pendiente }</strong></div>
+      <div><span>Número de cuotas</span><strong>{{ reviewInstallmentCount ?? 'Pendiente' }}</strong></div>
+      <div><span>Frecuencia</span><strong>{{ reviewFrequency }}</strong></div>
+    </div>
+
+    @if (reviewIssues.length) { <p class="review-issues"><mat-icon aria-hidden="true">error_outline</mat-icon><span>Completa o corrige: {{ reviewIssues.join(', ') }}.</span></p> }
+    @if (previewCurrent) {
+      <section class="preview-schedule" aria-label="Cronograma de cuotas calculado">
+        <h4>Cronograma de cuotas</h4>
+        <div class="schedule-scroll"><table><thead><tr><th>Cuota</th><th>Vencimiento</th><th>Capital</th><th>Interés</th><th>Importe</th></tr></thead><tbody>
+          @for (installment of preview()!.installments; track installment.installmentNumber) {
+            <tr><td data-label="Cuota">{{ installment.installmentNumber }}</td><td data-label="Vencimiento">{{ installment.dueDate | date:'dd/MM/yyyy':'UTC':'es-PE' }}</td><td data-label="Capital">{{ installment.principalAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</td><td data-label="Interés">{{ installment.interestAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</td><td data-label="Importe"><strong>{{ installment.scheduledAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</strong></td></tr>
+          }
+        </tbody></table></div>
+      </section>
+    } @else {
+      <p class="review-note">Interés, total y cuotas aparecerán al obtener una vista previa válida. El backend volverá a calcularlos al registrar.</p>
+    }
+  </section>
 </mat-dialog-content>
-<mat-dialog-actions align="end"><button mat-button mat-dialog-close>Cancelar</button><button mat-flat-button color="primary" (click)="save()">Registrar préstamo</button></mat-dialog-actions>
+<mat-dialog-actions align="end"><button mat-button mat-dialog-close>Cancelar</button><button mat-flat-button color="primary" (click)="save()">Continuar a confirmación</button></mat-dialog-actions>

@@ -5,7 +5,7 @@ import { map, Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import type { ApiResponse } from '../../../core/models/api-response.model';
 import type { Installment } from '../models/installment.model';
-import type { CreateLoanPayload, Loan, LoanDetail, LoansPage, LoansQuery, LoanStatus } from '../models/loan.model';
+import type { CreateLoanPayload, Loan, LoanDetail, LoanPreview, LoansPage, LoansQuery, LoanStatus } from '../models/loan.model';
 
 @Injectable({ providedIn: 'root' })
 export class LoansService {
@@ -21,6 +21,7 @@ export class LoansService {
   }
 
   getById(id: string): Observable<LoanDetail> { return this.http.get<ApiResponse<LoanDetail>>(`${this.endpoint}/${id}`).pipe(map((response) => response.data)); }
+  preview(payload: CreateLoanPayload): Observable<LoanPreview> { return this.http.post<ApiResponse<LoanPreview>>(`${this.endpoint}/preview`, payload).pipe(map((response) => response.data)); }
   create(payload: CreateLoanPayload): Observable<Loan> { return this.http.post<ApiResponse<Loan>>(this.endpoint, payload).pipe(map((response) => response.data)); }
   updateStatus(id: string, status: LoanStatus): Observable<Loan> { return this.http.patch<ApiResponse<Loan>>(`${this.endpoint}/${id}/status`, { status }).pipe(map((response) => response.data)); }
   listInstallments(loanId: string): Observable<Installment[]> { return this.http.get<ApiResponse<Installment[]>>(`${this.endpoint}/${loanId}/installments`).pipe(map((response) => response.data)); }

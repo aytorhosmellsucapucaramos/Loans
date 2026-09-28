@@ -108,6 +108,20 @@ Una búsqueda paginada devuelve `data.items` y `data.pagination` con `page`, `pa
 
 `GET /api/loans` admite `page`, `pageSize`, `customerId`, `status` (`active`, `paid` o `cancelled`) y `search`, que busca por cliente, documento o identificador de préstamo. Las consultas de préstamos incluyen `customer` con `id`, nombres, apellidos y documento para presentación; `customerId` se conserva como identificador interno. Las cuotas se consultan pero no se modifican directamente durante esta fase.
 
+`POST /api/loans/preview` requiere autenticación y permiso `loans.create`. Recibe el mismo cuerpo validado que el registro y devuelve el interés total, monto total y cronograma sin crear préstamos, cuotas, movimientos de caja ni registros de auditoría. La vista previa es informativa: `POST /api/loans` vuelve a validar y calcular todo antes de guardar.
+
+```http
+POST /api/loans/preview
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"customerId":"uuid","principalAmount":1000.00,"interestRate":10,"interestType":"simple","paymentFrequency":"monthly","installmentCount":4,"disbursementDate":"2026-09-15","firstInstallmentDate":"2026-10-15"}
+```
+
+```json
+{"success":true,"message":"Vista previa del préstamo calculada correctamente.","data":{"customerId":"uuid","principalAmount":"1000.00","interestRate":"10.0000","interestType":"simple","paymentFrequency":"monthly","installmentCount":4,"disbursementDate":"2026-09-15","firstInstallmentDate":"2026-10-15","totalInterestAmount":"100.00","totalAmount":"1100.00","installments":[{"installmentNumber":1,"dueDate":"2026-10-15","principalAmount":"250.00","interestAmount":"25.00","scheduledAmount":"275.00","outstandingAmount":"275.00","status":"pending"}]},"errors":[]}
+```
+
 ```http
 POST /api/loans
 Authorization: Bearer <accessToken>

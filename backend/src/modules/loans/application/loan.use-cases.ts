@@ -4,12 +4,65 @@ import type { InstallmentScheduleGenerator } from '../../installments/applicatio
 import type { InstallmentData } from '../../installments/domain/installment.js';
 import type { InstallmentRepository } from '../../installments/domain/installment-repository.js';
 import type { CustomerRepository } from '../../customers/domain/customer-repository.js';
+import type { NewInstallment } from '../../installments/domain/installment.js';
 import type { LoanAuditLogger } from '../domain/loan-audit-logger.js';
 import type { CreateLoanInput, LoanListCriteria, LoanPage, LoanRepository } from '../domain/loan-repository.js';
 import type { Loan, LoanData, LoanStatus } from '../domain/loan.js';
 
 const toData = (loan: Loan): LoanData => loan.data;
 const isValidDate = (value: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00.000Z`).getTime());
+
+type LoanCalculation = {
+  principalAmount: string;
+  interestRate: string;
+  totalInterestAmount: string;
+  totalAmount: string;
+  installments: NewInstallment[];
+};
+
+const calculateLoan = async (input: CreateLoanInput, customers: CustomerRepository, schedule: InstallmentScheduleGenerator): Promise<LoanCalculation> => {
+  if (!Number.isInteger(input.installmentCount) || input.installmentCount < 1) throw new AppError(422, 'INVALID_INSTALLMENT_COUNT', 'El número de cuotas debe ser mayor que cero.');
+  if (!isValidDate(input.disbursementDate) || !isValidDate(input.firstInstallmentDate) || input.firstInstallmentDate <= input.disbursementDate) {
+    throw new AppError(422, 'INVALID_LOAN_DATES', 'La primera cuota debe tener una fecha válida posterior al desembolso.');
+  }
+  const customer = await customers.findById(input.customerId);
+  if (!customer) throw new AppError(404, 'CUSTOMER_NOT_FOUND', 'El cliente no fue encontrado.');
+  if (!customer.data.isActive) throw new AppError(422, 'CUSTOMER_INACTIVE', 'No se puede crear un préstamo para un cliente inactivo.');
+  const principalCents = amountToCents(input.principalAmount);
+  const rateUnits = rateToUnits(input.interestRate);
+  if (principalCents <= 0n) throw new AppError(422, 'INVALID_LOAN_AMOUNT', 'El monto solicitado debe ser mayor que cero.');
+  const generated = schedule.generate({ principalCents, rateUnits, installmentCount: input.installmentCount, firstInstallmentDate: input.firstInstallmentDate, paymentFrequency: input.paymentFrequency });
+  return {
+    principalAmount: centsToAmount(principalCents),
+    interestRate: unitsToRate(rateUnits),
+    totalInterestAmount: centsToAmount(generated.totalInterestCents),
+    totalAmount: centsToAmount(generated.totalAmountCents),
+    installments: generated.installments,
+  };
+};
+
+export class PreviewLoanUseCase {
+  constructor(private readonly customers: CustomerRepository, private readonly schedule: InstallmentScheduleGenerator) {}
+
+  async execute(input: CreateLoanInput) {
+    const calculation = await calculateLoan(input, this.customers, this.schedule);
+    return {
+      customerId: input.customerId,
+      principalAmount: calculation.principalAmount,
+      interestRate: calculation.interestRate,
+      interestType: input.interestType,
+      paymentFrequency: input.paymentFrequency,
+      installmentCount: input.installmentCount,
+      disbursementDate: input.disbursementDate,
+      firstInstallmentDate: input.firstInstallmentDate,
+      totalInterestAmount: calculation.totalInterestAmount,
+      totalAmount: calculation.totalAmount,
+      installments: calculation.installments.map(({ installmentNumber, dueDate, principalAmount, interestAmount, scheduledAmount, outstandingAmount, status }) => ({
+        installmentNumber, dueDate, principalAmount, interestAmount, scheduledAmount, outstandingAmount, status,
+      })),
+    };
+  }
+}
 
 export class ListLoansUseCase {
   constructor(private readonly loans: LoanRepository) {}
@@ -37,24 +90,14 @@ export class CreateLoanUseCase {
   ) {}
 
   async execute(input: CreateLoanInput, actorId: string): Promise<LoanData> {
-    if (!Number.isInteger(input.installmentCount) || input.installmentCount < 1) throw new AppError(422, 'INVALID_INSTALLMENT_COUNT', 'El número de cuotas debe ser mayor que cero.');
-    if (!isValidDate(input.disbursementDate) || !isValidDate(input.firstInstallmentDate) || input.firstInstallmentDate <= input.disbursementDate) {
-      throw new AppError(422, 'INVALID_LOAN_DATES', 'La primera cuota debe tener una fecha válida posterior al desembolso.');
-    }
-    const customer = await this.customers.findById(input.customerId);
-    if (!customer) throw new AppError(404, 'CUSTOMER_NOT_FOUND', 'El cliente no fue encontrado.');
-    if (!customer.data.isActive) throw new AppError(422, 'CUSTOMER_INACTIVE', 'No se puede crear un préstamo para un cliente inactivo.');
-    const principalCents = amountToCents(input.principalAmount);
-    const rateUnits = rateToUnits(input.interestRate);
-    if (principalCents <= 0n) throw new AppError(422, 'INVALID_LOAN_AMOUNT', 'El monto solicitado debe ser mayor que cero.');
-    const generated = this.schedule.generate({ principalCents, rateUnits, installmentCount: input.installmentCount, firstInstallmentDate: input.firstInstallmentDate, paymentFrequency: input.paymentFrequency });
+    const calculation = await calculateLoan(input, this.customers, this.schedule);
     const loan = await this.loans.createWithInstallments({
       ...input,
-      principalAmount: centsToAmount(principalCents),
-      interestRate: unitsToRate(rateUnits),
-      totalAmount: centsToAmount(generated.totalAmountCents),
+      principalAmount: calculation.principalAmount,
+      interestRate: calculation.interestRate,
+      totalAmount: calculation.totalAmount,
       observations: input.observations?.trim() || null,
-    }, generated.installments);
+    }, calculation.installments);
     await this.audit.record('loan.created', actorId, loan.data.id);
     return toData(loan);
   }

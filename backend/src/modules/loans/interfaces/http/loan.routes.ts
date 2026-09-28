@@ -20,5 +20,7 @@ export const loanRouter = (container: AppContainer): Router => {
   router.post('/', requirePermission('loans.create'), validateBody(createLoanSchema), asyncHandler(controller.create));
   router.patch('/:id/status', requirePermission('loans.update'), validateBody(loanStatusSchema), asyncHandler((req, res, next) => { validateId(stringParam(req.params.id, 'id')); return controller.updateStatus(req, res, next); }));
   router.get('/:loanId/installments', requirePermission('installments.read'), asyncHandler((req, res, next) => { validateId(stringParam(req.params.loanId, 'loanId')); return controller.listInstallments(req, res, next); }));
+  router.get('/:loanId/collateral', requirePermission('loans.read'), asyncHandler((req, res, next) => { validateId(stringParam(req.params.loanId, 'loanId')); return controller.listCollateral(req, res, next); }));
+  router.patch('/:loanId/collateral/:itemId/return', requirePermission('loans.update'), asyncHandler((req, res, next) => { validateId(stringParam(req.params.loanId, 'loanId')); validateId(stringParam(req.params.itemId, 'itemId')); return controller.returnCollateral(req, res, next); }));
   return router;
 };

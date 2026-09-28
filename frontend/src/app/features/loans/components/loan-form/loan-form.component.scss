@@ -16,6 +16,27 @@
 mat-form-field { width: 100%; }
 .customer-picker { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: .5rem; }
 .customer-create { min-height: 56px; white-space: nowrap; }
+.collateral-entry { padding-top: .4rem; }
+.collateral-entry-header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.collateral-entry-header { margin-bottom: .65rem; }
+.collateral-entry-header h4, .collateral-draft-card h5 { margin: 0; color: var(--sp-text); }
+.collateral-entry-header h4 span, .collateral-review h4 span { margin-left: .35rem; color: var(--sp-text-muted); font-size: .75rem; font-weight: 500; }
+.collateral-entry-header p { margin: .2rem 0 0; color: var(--sp-text-muted); font-size: .82rem; }
+.collateral-list-desktop { overflow-x: auto; border: 1px solid var(--sp-border); border-radius: 9px; background: var(--sp-surface); }
+.collateral-list-desktop table { width: 100%; border-collapse: collapse; text-align: left; }
+.collateral-list-desktop th, .collateral-list-desktop td { padding: .65rem .55rem; border-bottom: 1px solid var(--sp-border-subtle); vertical-align: top; }
+.collateral-list-desktop th { background: var(--sp-surface-header); color: var(--sp-text-soft); font-size: .78rem; font-weight: 600; }
+.collateral-list-desktop td { color: var(--sp-text); font-size: .82rem; }
+.collateral-list-desktop td > span { display: block; margin-bottom: .15rem; }
+.collateral-actions { white-space: nowrap; }
+.collateral-list-mobile { display: none; }
+.collateral-empty { margin: 0; padding: .8rem; border: 1px dashed var(--sp-border); border-radius: 8px; color: var(--sp-text-muted); font-size: .85rem; }
+.collateral-review { margin-top: 1rem; padding: .8rem; border: 1px solid var(--sp-border-soft); border-radius: 10px; background: var(--sp-surface-soft); }
+.collateral-review h4 { margin: 0 0 .5rem; }
+.collateral-review ul { margin: 0; padding: 0; list-style: none; }
+.collateral-review li { display: flex; justify-content: space-between; gap: .75rem; padding: .6rem 0; border-top: 1px solid var(--sp-border-subtle); }
+.collateral-review li div { display: grid; gap: .2rem; }
+.collateral-review li span { color: var(--sp-text-muted); font-size: .8rem; }
 .loan-review { padding: 1rem; border: 1px solid var(--sp-border-soft); border-radius: 12px; background: #f8faff; }
 .review-heading { display: flex; align-items: flex-start; gap: .75rem; margin: -.15rem 0 .9rem; padding-bottom: .75rem; border-bottom: 1px solid var(--sp-border-soft); color: var(--sp-brand); }
 .review-heading > mat-icon { margin-top: .1rem; }
@@ -54,6 +75,10 @@ mat-dialog-actions button { min-height: 44px; }
   .form { grid-template-columns: 1fr; }
   .customer-picker { grid-template-columns: 1fr; }
   .customer-create { width: 100%; min-height: 48px; margin: -.25rem 0 .5rem; }
+  .collateral-entry-header { align-items: stretch; flex-direction: column; }
+  .collateral-entry-header button { width: 100%; min-height: 44px; }
+  .collateral-review li { align-items: flex-start; }
+  .collateral-review li > strong { text-align: right; }
   .loan-review { padding: .8rem; }
   .review-heading h3 { font-size: 1.15rem; }
   .review-grid { grid-template-columns: 1fr 1fr; gap: .4rem; }
@@ -66,4 +91,19 @@ mat-dialog-actions button { min-height: 44px; }
   .action-spacer { display: none; }
   mat-dialog-actions { flex-wrap: wrap; }
   mat-dialog-actions button { flex: 1 1 auto; min-width: 5.5rem; }
+}
+
+@media (max-width: 700px) {
+  .collateral-list-desktop { display: none; }
+  .collateral-list-mobile { display: grid; gap: .55rem; }
+  .collateral-draft-card { min-width: 0; padding: .7rem; border: 1px solid var(--sp-border); border-radius: 9px; background: var(--sp-surface); }
+  .collateral-draft-card > header { display: flex; justify-content: space-between; align-items: flex-start; gap: .6rem; }
+  .collateral-draft-card h5 { overflow-wrap: anywhere; }
+  .collateral-draft-card header p { margin: .15rem 0 0; color: var(--sp-text-muted); font-size: .8rem; }
+  .collateral-draft-card header > strong { flex: 0 0 auto; color: var(--sp-brand); white-space: nowrap; }
+  .collateral-draft-card > p { margin: .6rem 0; color: var(--sp-text); font-size: .85rem; overflow-wrap: anywhere; }
+  .collateral-draft-card > p span { color: var(--sp-text-muted); }
+  .collateral-draft-details { display: grid; gap: .2rem; color: var(--sp-text-soft); font-size: .8rem; overflow-wrap: anywhere; }
+  .collateral-draft-card footer { display: flex; justify-content: flex-end; gap: .25rem; margin-top: .45rem; border-top: 1px solid var(--sp-border-subtle); }
+  .collateral-draft-card footer button { min-height: 44px; }
 }

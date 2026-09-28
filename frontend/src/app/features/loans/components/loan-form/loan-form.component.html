@@ -25,6 +25,49 @@
       <mat-form-field appearance="outline"><mat-label>Fecha de desembolso</mat-label><input matInput type="date" formControlName="disbursementDate" />@if (form.controls.disbursementDate.touched && form.controls.disbursementDate.invalid) { <mat-error>La fecha es obligatoria.</mat-error> }</mat-form-field>
       <mat-form-field appearance="outline"><mat-label>Fecha de primera cuota</mat-label><input matInput type="date" formControlName="firstInstallmentDate" />@if (form.controls.firstInstallmentDate.touched && (form.controls.firstInstallmentDate.invalid || form.hasError('firstInstallmentDate'))) { <mat-error>Debe ser posterior al desembolso.</mat-error> }</mat-form-field>
       <mat-form-field appearance="outline" class="full"><mat-label>Observaciones</mat-label><textarea matInput rows="2" maxlength="1000" formControlName="observations"></textarea></mat-form-field>
+      <section class="collateral-entry full" aria-labelledby="collateral-entry-title">
+        <header class="collateral-entry-header">
+          <div><h4 id="collateral-entry-title">Objetos en garantía <span>Opcional</span></h4><p>Agrega los objetos que quedan bajo custodia. La tasación es informativa.</p></div>
+          <button mat-stroked-button type="button" (click)="addCollateralItem()"><mat-icon aria-hidden="true">add</mat-icon>Agregar objeto</button>
+        </header>
+        @if (collateralItems().length) {
+          <div class="collateral-list-desktop">
+            <table aria-label="Objetos en garantía agregados al préstamo"><thead><tr><th>Descripción</th><th>Categoría</th><th>Condición física</th><th>Detalles</th><th>Valor estimado</th><th>Acciones</th></tr></thead>
+              <tbody>@for (item of collateralItems(); track $index; let index = $index) {
+                <tr><td><strong>{{ item.description }}</strong></td><td>{{ item.category }}</td><td>{{ item.physicalCondition }}</td><td>
+                  @if (item.brand) { <span>Marca: {{ item.brand }}</span> }
+                  @if (item.model) { <span>Modelo: {{ item.model }}</span> }
+                  @if (item.serialNumber) { <span>Serie: {{ item.serialNumber }}</span> }
+                  @if (item.notes) { <span>Notas: {{ item.notes }}</span> }
+                  @if (!item.brand && !item.model && !item.serialNumber && !item.notes) { <span>—</span> }
+                </td><td>{{ item.estimatedValue | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</td><td class="collateral-actions">
+                  <button mat-button type="button" (click)="editCollateralItem(index)"><mat-icon aria-hidden="true">edit</mat-icon>Editar</button>
+                  <button mat-button type="button" color="warn" (click)="removeCollateralItem(index)"><mat-icon aria-hidden="true">delete_outline</mat-icon>Quitar</button>
+                </td></tr>
+              }</tbody>
+            </table>
+          </div>
+          <div class="collateral-list-mobile">
+            @for (item of collateralItems(); track $index; let index = $index) {
+              <article class="collateral-draft-card">
+                <header><div><h5>{{ item.description }}</h5><p>{{ item.category }}</p></div><strong>{{ item.estimatedValue | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</strong></header>
+                <p><span>Condición:</span> {{ item.physicalCondition }}</p>
+                @if (item.brand || item.model || item.serialNumber || item.notes) {
+                  <div class="collateral-draft-details">
+                    @if (item.brand) { <span>Marca: {{ item.brand }}</span> }
+                    @if (item.model) { <span>Modelo: {{ item.model }}</span> }
+                    @if (item.serialNumber) { <span>Serie: {{ item.serialNumber }}</span> }
+                    @if (item.notes) { <span>Notas: {{ item.notes }}</span> }
+                  </div>
+                }
+                <footer><button mat-button type="button" (click)="editCollateralItem(index)"><mat-icon aria-hidden="true">edit</mat-icon>Editar</button><button mat-button type="button" color="warn" (click)="removeCollateralItem(index)"><mat-icon aria-hidden="true">delete_outline</mat-icon>Quitar</button></footer>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="collateral-empty">Aún no agregas objetos. Puedes registrar el préstamo sin garantía.</p>
+        }
+      </section>
     </form>
   } @else {
       <header class="review-heading"><mat-icon aria-hidden="true">fact_check</mat-icon><div><h3 id="loan-review-title">Revisa tu préstamo</h3><p>Verifica el cronograma antes de registrar.</p></div></header>
@@ -38,6 +81,13 @@
         <div><span>Número de cuotas</span><strong>{{ reviewInstallmentCount ?? 'Pendiente' }}</strong></div>
         <div><span>Frecuencia</span><strong>{{ reviewFrequency }}</strong></div>
       </div>
+
+      @if (collateralItems().length) {
+        <section class="collateral-review" aria-label="Objetos recibidos en garantía">
+          <h4>Objetos en garantía <span>Valor informativo</span></h4>
+          <ul>@for (item of collateralItems(); track $index) { <li><div><strong>{{ item.description }}</strong><span>{{ item.category }} · Recibido {{ item.receivedAt | date:'dd/MM/yyyy':'UTC':'es-PE' }}</span></div><strong>{{ item.estimatedValue | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</strong></li> }</ul>
+        </section>
+      }
 
       @if (reviewIssues.length) { <p class="review-issues"><mat-icon aria-hidden="true">error_outline</mat-icon><span>Completa o corrige: {{ reviewIssues.join(', ') }}.</span></p> }
       @if (previewCurrent) {

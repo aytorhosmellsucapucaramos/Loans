@@ -9,6 +9,8 @@ const installment = { id: '66666666-6666-4666-8666-666666666666', loanId: loan.i
 const payload = { customerId: loan.customerId, principalAmount: 1000, interestRate: 10, interestType: 'simple', paymentFrequency: 'monthly', installmentCount: 4, disbursementDate: '2026-01-01', firstInstallmentDate: '2026-02-01' };
 const preview = { customerId: loan.customerId, principalAmount: '1000.00', interestRate: '10.0000', interestType: 'simple', paymentFrequency: 'monthly', installmentCount: 4, disbursementDate: '2026-01-01', firstInstallmentDate: '2026-02-01', totalInterestAmount: '100.00', totalAmount: '1100.00', installments: [{ installmentNumber: 1, dueDate: '2026-02-01', principalAmount: '250.00', interestAmount: '25.00', scheduledAmount: '275.00', outstandingAmount: '275.00', status: 'pending' }] };
 
+const collateralItem = { id: '77777777-7777-4777-8777-777777777777', loanId: loan.id, description: 'Televisor', category: 'Electrónica', brand: null, model: null, serialNumber: null, physicalCondition: 'Buen estado', estimatedValue: '500.00', notes: null, receivedAt: '2026-09-15', custodyStatus: 'in_custody', returnedAt: null, returnedBy: null };
+
 const buildApp = (permissions = ['loans.read', 'loans.create', 'loans.update', 'installments.read']) => {
   const user = new User('user-1', 'ana@example.com', 'Ana', 'Pérez', 'hash', true, new Date(), new Date(), ['admin'], permissions);
   const container = {
@@ -16,6 +18,7 @@ const buildApp = (permissions = ['loans.read', 'loans.create', 'loans.update', '
     listLoans: { execute: jest.fn().mockResolvedValue({ items: [loan], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } }) },
     getLoan: { execute: jest.fn().mockResolvedValue({ ...loan, installments: [installment] }) }, previewLoan: { execute: jest.fn().mockResolvedValue(preview) }, createLoan: { execute: jest.fn().mockResolvedValue(loan) }, setLoanStatus: { execute: jest.fn().mockResolvedValue({ ...loan, status: 'cancelled' }) },
     listLoanInstallments: { execute: jest.fn().mockResolvedValue([installment]) }, getInstallment: { execute: jest.fn().mockResolvedValue(installment) },
+    listLoanCollateral: { execute: jest.fn().mockResolvedValue([collateralItem]) }, returnLoanCollateral: { execute: jest.fn().mockResolvedValue({ ...collateralItem, custodyStatus: 'returned', returnedAt: new Date(), returnedBy: { id: user.id, firstName: user.firstName, lastName: user.lastName } }) },
   } as unknown as AppContainer;
   return { app: createApp(container), container };
 };
@@ -29,6 +32,7 @@ describe('API HTTP de préstamos', () => {
   it('valida monto y fechas antes de crear', async () => {
     await request(buildApp().app).post('/api/loans').set('Authorization', 'Bearer token').send({ ...payload, principalAmount: 0 }).expect(400);
     await request(buildApp().app).post('/api/loans').set('Authorization', 'Bearer token').send({ ...payload, firstInstallmentDate: '2026-01-01' }).expect(400);
+    await request(buildApp().app).post('/api/loans').set('Authorization', 'Bearer token').send({ ...payload, collateralItems: [{ description: 'Televisor', category: 'Electrónica', physicalCondition: 'Buen estado', estimatedValue: 0 }] }).expect(400);
   });
   it('previsualiza con permiso de creación y sin invocar registro', async () => {
     const { app, container } = buildApp();
@@ -44,6 +48,18 @@ describe('API HTTP de préstamos', () => {
   it('consulta las cuotas con su permiso específico', async () => {
     const response = await request(buildApp().app).get(`/api/loans/${loan.id}/installments`).set('Authorization', 'Bearer token').expect(200);
     expect(response.body.data).toHaveLength(1);
+  });
+  it('consulta garantías y registra su devolución con los permisos actuales', async () => {
+    const { app, container } = buildApp();
+    const list = await request(app).get(`/api/loans/${loan.id}/collateral`).set('Authorization', 'Bearer token').expect(200);
+    expect(list.body.data[0]).toMatchObject({ description: 'Televisor', custodyStatus: 'in_custody' });
+    const returned = await request(app).patch(`/api/loans/${loan.id}/collateral/${collateralItem.id}/return`).set('Authorization', 'Bearer token').send({}).expect(200);
+    expect(returned.body.data).toMatchObject({ custodyStatus: 'returned', returnedBy: { firstName: 'Ana' } });
+    expect(container.returnLoanCollateral.execute).toHaveBeenCalledWith(loan.id, collateralItem.id, 'user-1');
+  });
+  it('protege consulta y devolución de garantías con loans.read y loans.update', async () => {
+    await request(buildApp(['loans.update']).app).get(`/api/loans/${loan.id}/collateral`).set('Authorization', 'Bearer token').expect(403);
+    await request(buildApp(['loans.read']).app).patch(`/api/loans/${loan.id}/collateral/${collateralItem.id}/return`).set('Authorization', 'Bearer token').send({}).expect(403);
   });
   it('deniega creación sin permiso', async () => {
     await request(buildApp(['loans.read']).app).post('/api/loans').set('Authorization', 'Bearer token').send(payload).expect(403);

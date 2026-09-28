@@ -5,12 +5,37 @@ import type { InstallmentData } from '../../installments/domain/installment.js';
 import type { InstallmentRepository } from '../../installments/domain/installment-repository.js';
 import type { CustomerRepository } from '../../customers/domain/customer-repository.js';
 import type { NewInstallment } from '../../installments/domain/installment.js';
+import type { NewLoanCollateralInput } from '../domain/loan-collateral.js';
 import type { LoanAuditLogger } from '../domain/loan-audit-logger.js';
 import type { CreateLoanInput, LoanListCriteria, LoanPage, LoanRepository } from '../domain/loan-repository.js';
 import type { Loan, LoanData, LoanStatus } from '../domain/loan.js';
 
 const toData = (loan: Loan): LoanData => loan.data;
 const isValidDate = (value: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00.000Z`).getTime());
+
+const normalizeCollateralItems = (items: NewLoanCollateralInput[] | undefined): NewLoanCollateralInput[] => (items ?? []).map((item) => {
+  let amount: bigint;
+  try {
+    amount = amountToCents(item.estimatedValue);
+  } catch {
+    throw new AppError(422, 'INVALID_COLLATERAL_VALUE', 'El valor estimado de la garantía no es válido.');
+  }
+  if (amount <= 0n) throw new AppError(422, 'INVALID_COLLATERAL_VALUE', 'El valor estimado de la garantía debe ser mayor que cero.');
+  if (!item.description.trim() || !item.category.trim() || !item.physicalCondition.trim()) {
+    throw new AppError(422, 'INVALID_COLLATERAL_DATA', 'La descripción, categoría y estado físico son obligatorios.');
+  }
+  return {
+    description: item.description.trim(),
+    category: item.category.trim(),
+    brand: item.brand?.trim() || null,
+    model: item.model?.trim() || null,
+    serialNumber: item.serialNumber?.trim() || null,
+    physicalCondition: item.physicalCondition.trim(),
+    estimatedValue: centsToAmount(amount),
+    notes: item.notes?.trim() || null,
+    receivedAt: item.receivedAt,
+  };
+});
 
 type LoanCalculation = {
   principalAmount: string;
@@ -91,13 +116,16 @@ export class CreateLoanUseCase {
 
   async execute(input: CreateLoanInput, actorId: string): Promise<LoanData> {
     const calculation = await calculateLoan(input, this.customers, this.schedule);
+    const collateralItems = normalizeCollateralItems(input.collateralItems);
+    const loanInput = { ...input };
+    delete loanInput.collateralItems;
     const loan = await this.loans.createWithInstallments({
-      ...input,
+      ...loanInput,
       principalAmount: calculation.principalAmount,
       interestRate: calculation.interestRate,
       totalAmount: calculation.totalAmount,
       observations: input.observations?.trim() || null,
-    }, calculation.installments);
+    }, calculation.installments, collateralItems);
     await this.audit.record('loan.created', actorId, loan.data.id);
     return toData(loan);
   }

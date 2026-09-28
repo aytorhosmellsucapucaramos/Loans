@@ -1,0 +1,11 @@
+.collateral-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; padding-top: .25rem; }
+.collateral-form mat-form-field { width: 100%; min-width: 0; }
+.full { grid-column: 1 / -1; }
+mat-dialog-actions button { min-height: 44px; }
+
+@media (max-width: 600px) {
+  .collateral-form { grid-template-columns: 1fr; }
+  .full { grid-column: auto; }
+  mat-dialog-actions { flex-wrap: wrap; }
+  mat-dialog-actions button { flex: 1 1 auto; }
+}

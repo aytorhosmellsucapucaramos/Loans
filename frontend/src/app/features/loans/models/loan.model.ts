@@ -32,6 +32,39 @@ export interface Loan {
 
 export interface LoanDetail extends Loan { installments: Installment[]; }
 
+export type CollateralCustodyStatus = 'in_custody' | 'returned';
+
+export interface LoanCollateralPayload {
+  description: string;
+  category: string;
+  brand?: string;
+  model?: string;
+  serialNumber?: string;
+  physicalCondition: string;
+  estimatedValue: number;
+  notes?: string;
+  receivedAt: string;
+}
+
+export interface LoanCollateralItem {
+  id: string;
+  loanId: string;
+  description: string;
+  category: string;
+  estimatedValue: string;
+  brand: string | null;
+  model: string | null;
+  serialNumber: string | null;
+  physicalCondition: string;
+  receivedAt: string;
+  notes: string | null;
+  custodyStatus: CollateralCustodyStatus;
+  returnedAt: string | null;
+  returnedBy: { id: string; firstName: string; lastName: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface LoanPreviewInstallment {
   installmentNumber: number;
   dueDate: string;
@@ -66,6 +99,7 @@ export interface CreateLoanPayload {
   disbursementDate: string;
   firstInstallmentDate: string;
   observations?: string;
+  collateralItems?: LoanCollateralPayload[];
 }
 
 export interface LoansQuery {

@@ -18,7 +18,7 @@ Backend usa solamente `DATABASE_URL` mediante `pg.Pool`. No hay cliente Supabase
 | --- | --- |
 | URL PostgreSQL Supabase | Compatible; copiar desde botón **Connect** del proyecto. No inventar ni reconstruir URL. |
 | SSL | Producción exige `sslmode=require`, `verify-ca` o `verify-full` en `DATABASE_URL`. Para Supabase, `pg` recibe SSL explícitamente, sin cambiar TLS global. |
-| Migraciones | Seis migraciones SQL PostgreSQL, registradas transaccionalmente en `schema_migrations`. |
+| Migraciones | Siete migraciones SQL PostgreSQL, registradas transaccionalmente en `schema_migrations`. |
 | Transacciones y bloqueos | `BEGIN`/`COMMIT`/`ROLLBACK` y `FOR UPDATE`; PostgreSQL administrado los soporta. |
 | Consultas y paginación | Consultas parametrizadas, `LIMIT`/`OFFSET`; sin cambios requeridos. |
 | Reportes | Agregaciones SQL y zona `America/Lima`; sin API Supabase. |
@@ -44,7 +44,7 @@ Para Render con red IPv4, preferir cadena de **Session Pooler** de Supabase indi
    npm run db:seed --workspace=@sistema-prestamos/backend
    ```
 
-6. Confirmar `schema_migrations`, tablas, índices, rol administrador y permisos. Las migraciones son `001-initial-auth`, `002-customers`, `003-loans-installments`, `004-payments`, `005-cash`, `006-audit`.
+6. Confirmar `schema_migrations`, tablas, índices, rol administrador y permisos. Las migraciones son `001-initial-auth`, `002-customers`, `003-loans-installments`, `004-payments`, `005-cash`, `006-audit`, `007-loan-collateral`.
 7. Con backend iniciado, comprobar `GET /api/health`.
 
 No ejecutar seeder al iniciar Render. El seeder actual actualiza contraseña del administrador definido; por eso debe ejecutarse deliberadamente, nunca como Start Command.

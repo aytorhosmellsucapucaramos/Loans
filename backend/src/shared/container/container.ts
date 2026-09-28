@@ -19,6 +19,8 @@ import { PostgresInstallmentRepository } from '../../modules/installments/infras
 import { CreateLoanUseCase, GetLoanUseCase, ListLoansUseCase, PreviewLoanUseCase, SetLoanStatusUseCase } from '../../modules/loans/application/loan.use-cases.js';
 import { PinoLoanAuditLogger } from '../../modules/loans/infrastructure/pino-loan-audit-logger.js';
 import { PostgresLoanRepository } from '../../modules/loans/infrastructure/postgres-loan.repository.js';
+import { PostgresLoanCollateralRepository } from '../../modules/loans/infrastructure/postgres-loan-collateral.repository.js';
+import { ListLoanCollateralUseCase, ReturnLoanCollateralUseCase } from '../../modules/loans/application/collateral.use-cases.js';
 import { CancelPaymentUseCase, GetPaymentUseCase, ListInstallmentPaymentsUseCase, ListLoanPaymentsUseCase, ListPaymentsUseCase, RegisterPaymentUseCase } from '../../modules/payments/application/payment.use-cases.js';
 import { PinoPaymentAuditLogger } from '../../modules/payments/infrastructure/pino-payment-audit-logger.js';
 import { PostgresPaymentRepository } from '../../modules/payments/infrastructure/postgres-payment.repository.js';
@@ -37,6 +39,7 @@ export const createContainer = (database: Pool = pool) => {
   const accessControl = new PostgresAccessControlRepository(database);
   const customers = new PostgresCustomerRepository(database);
   const loans = new PostgresLoanRepository(database);
+  const loanCollateral = new PostgresLoanCollateralRepository(database);
   const installments = new PostgresInstallmentRepository(database);
   const cash = new PostgresCashRepository(database);
   const reports = new PostgresReportRepository(database);
@@ -56,6 +59,7 @@ export const createContainer = (database: Pool = pool) => {
     accessControl,
     customers,
     loans,
+    loanCollateral,
     installments,
     payments,
     cash,
@@ -81,6 +85,8 @@ export const createContainer = (database: Pool = pool) => {
     previewLoan: new PreviewLoanUseCase(customers, schedule),
     createLoan: new CreateLoanUseCase(loans, customers, schedule, loanAudit),
     setLoanStatus: new SetLoanStatusUseCase(loans, loanAudit),
+    listLoanCollateral: new ListLoanCollateralUseCase(loans, loanCollateral),
+    returnLoanCollateral: new ReturnLoanCollateralUseCase(loans, loanCollateral, loanAudit),
     getInstallment: new GetInstallmentUseCase(installments),
     listLoanInstallments: new ListLoanInstallmentsUseCase(installments),
     listPayments: new ListPaymentsUseCase(payments),

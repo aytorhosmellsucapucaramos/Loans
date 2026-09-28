@@ -19,7 +19,7 @@ import { PaymentsTableComponent } from '../../../payments/components/payments-ta
 import type { CreatePaymentPayload, Payment } from '../../../payments/models/payment.model';
 import { PaymentsService } from '../../../payments/services/payments.service';
 import type { Installment } from '../../models/installment.model';
-import type { LoanDetail, LoanStatus } from '../../models/loan.model';
+import type { LoanCollateralItem, LoanDetail, LoanStatus } from '../../models/loan.model';
 import { LoansService } from '../../services/loans.service';
 
 @Component({
@@ -43,6 +43,9 @@ export class LoanDetailPageComponent {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly payments = signal<Payment[]>([]);
+  readonly collateralItems = signal<LoanCollateralItem[]>([]);
+  readonly collateralLoading = signal(false);
+  readonly collateralError = signal<string | null>(null);
 
   constructor() { this.load(); }
 
@@ -51,7 +54,7 @@ export class LoanDetailPageComponent {
     if (!id) { this.error.set('No se indicó un préstamo.'); this.loading.set(false); return; }
     this.loading.set(true); this.error.set(null);
     this.api.getById(id).pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: (loan) => { this.loan.set(loan); if (this.auth.hasPermission('customers.read')) this.customersApi.getById(loan.customerId).subscribe({ next: (customer) => this.customer.set(customer), error: () => undefined }); if (this.auth.hasPermission('payments.read')) this.loadPayments(loan.id); },
+      next: (loan) => { this.loan.set(loan); this.loadCollateral(loan.id); if (this.auth.hasPermission('customers.read')) this.customersApi.getById(loan.customerId).subscribe({ next: (customer) => this.customer.set(customer), error: () => undefined }); if (this.auth.hasPermission('payments.read')) this.loadPayments(loan.id); },
       error: () => this.error.set('No fue posible cargar el préstamo.'),
     });
   }
@@ -81,5 +84,22 @@ export class LoanDetailPageComponent {
   }
 
   openPayment(payment: Payment): void { void this.router.navigate(['/payments', payment.id]); }
+
+  returnCollateral(item: LoanCollateralItem): void {
+    const loan = this.loan();
+    if (!loan || loan.status !== 'paid' || item.custodyStatus !== 'in_custody' || !this.auth.hasPermission('loans.update')) return;
+    this.dialog.open(ConfirmDialogComponent, { data: { title: 'Registrar devolución', message: `Confirma la devolución de “${item.description}”. Esta acción quedará registrada.`, confirmLabel: 'Confirmar devolución' } }).afterClosed().pipe(
+      switchMap((confirmed: boolean | undefined) => confirmed ? this.api.returnCollateral(loan.id, item.id) : []),
+    ).subscribe({ next: (returned) => { if (returned) { this.notifications.success('Devolución de garantía registrada correctamente.'); this.loadCollateral(loan.id); } } });
+  }
+
   private loadPayments(loanId: string): void { this.paymentsApi.listByLoan(loanId).subscribe({ next: (payments) => this.payments.set(payments), error: () => this.payments.set([]) }); }
+  private loadCollateral(loanId: string): void {
+    this.collateralLoading.set(true);
+    this.collateralError.set(null);
+    this.api.listCollateral(loanId).pipe(finalize(() => this.collateralLoading.set(false))).subscribe({
+      next: (items) => this.collateralItems.set(items),
+      error: () => this.collateralError.set('No fue posible cargar los objetos en garantía.'),
+    });
+  }
 }

@@ -14,6 +14,26 @@
     <mat-card><mat-card-content><span>Estado</span><strong [ngClass]="item.status">{{ item.status === 'active' ? 'Activo' : item.status === 'paid' ? 'Pagado' : 'Cancelado' }}</strong></mat-card-content></mat-card>
   </section>
   <section class="details"><div><span>Tasa</span><strong>{{ item.interestRate }}% · interés simple</strong></div><div><span>Frecuencia</span><strong>{{ item.paymentFrequency }}</strong></div><div><span>Desembolso</span><strong>{{ item.disbursementDate | date:'dd/MM/yyyy' }}</strong></div><div><span>Primera cuota</span><strong>{{ item.firstInstallmentDate | date:'dd/MM/yyyy' }}</strong></div><div><span>Número de cuotas</span><strong>{{ item.installmentCount }}</strong></div>@if (item.observations) { <div class="observations"><span>Observaciones</span><strong>{{ item.observations }}</strong></div> }</section>
+  <section class="collateral-section" aria-labelledby="collateral-title">
+    <header><div><h2 id="collateral-title">Objetos en garantía</h2><p>Consulta el estado de custodia de cada objeto.</p></div></header>
+    @if (collateralLoading()) { <div class="collateral-state"><mat-spinner diameter="28"/><span>Cargando garantías…</span></div> }
+    @else if (collateralError()) { <div class="collateral-state error"><mat-icon>error</mat-icon><span>{{ collateralError() }}</span><button mat-stroked-button (click)="load()">Reintentar</button></div> }
+    @else if (collateralItems().length) {
+      <div class="collateral-list">
+        @for (collateral of collateralItems(); track collateral.id) {
+          <article class="collateral-detail-card">
+            <header><div><h3>{{ collateral.description }}</h3><p>{{ collateral.category }}@if (collateral.brand) { · {{ collateral.brand }} }@if (collateral.model) { · {{ collateral.model }} }</p></div><span class="custody-status" [class.returned]="collateral.custodyStatus === 'returned'">{{ collateral.custodyStatus === 'in_custody' ? 'En custodia' : 'Devuelto' }}</span></header>
+            <dl><div><dt>Valor estimado</dt><dd>{{ collateral.estimatedValue | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</dd></div><div><dt>Recibido</dt><dd>{{ collateral.receivedAt | date:'dd/MM/yyyy':'UTC':'es-PE' }}</dd></div>@if (collateral.serialNumber) { <div><dt>Número de serie</dt><dd>{{ collateral.serialNumber }}</dd></div> }</dl>
+            <p class="physical-condition"><strong>Estado físico:</strong> {{ collateral.physicalCondition }}</p>
+            @if (collateral.notes) { <p class="collateral-notes"><strong>Notas:</strong> {{ collateral.notes }}</p> }
+            @if (collateral.custodyStatus === 'returned') { <p class="return-record"><mat-icon aria-hidden="true">task_alt</mat-icon><span>Devuelto el {{ collateral.returnedAt | date:'dd/MM/yyyy HH:mm':'':'es-PE' }}@if (collateral.returnedBy) { · {{ collateral.returnedBy.firstName }} {{ collateral.returnedBy.lastName }} }</span></p> }
+            @else if (item.status === 'paid' && auth.hasPermission('loans.update')) { <button mat-stroked-button color="primary" (click)="returnCollateral(collateral)"><mat-icon>assignment_return</mat-icon>Registrar devolución</button> }
+            @else { <p class="return-hint">La devolución estará disponible cuando el préstamo esté pagado.</p> }
+          </article>
+        }
+      </div>
+    } @else { <p class="collateral-empty">Este préstamo no tiene objetos registrados en garantía.</p> }
+  </section>
   <section class="schedule"><h2>Cronograma de cuotas</h2>@if (auth.hasPermission('installments.read')) { <sp-installments-table [installments]="item.installments" [canRegisterPayments]="auth.hasPermission('payments.create') && item.status === 'active'" (paymentRequested)="registerPayment($event)" /> } @else { <p>No tienes permiso para consultar las cuotas de este préstamo.</p> }</section>
   @if (auth.hasPermission('payments.read')) { <section class="payments-history"><h2>Historial de pagos</h2>@if (payments().length) { <sp-payments-table [payments]="payments()" [canCancel]="auth.hasPermission('payments.cancel')" (viewPayment)="openPayment($event)" (cancelPayment)="cancelPayment($event)" /> } @else { <p>No hay pagos registrados para este préstamo.</p> }</section> }
 }

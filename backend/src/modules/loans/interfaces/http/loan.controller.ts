@@ -13,4 +13,6 @@ export class LoanController {
   create: RequestHandler = async (request, response) => success(response, await this.container.createLoan.execute(request.body as CreateLoanDto, request.auth!.userId), 'Préstamo creado correctamente.', 201);
   updateStatus: RequestHandler = async (request, response) => success(response, await this.container.setLoanStatus.execute(stringParam(request.params.id, 'id'), (request.body as LoanStatusDto).status, request.auth!.userId), 'Estado del préstamo actualizado correctamente.');
   listInstallments: RequestHandler = async (request, response) => success(response, await this.container.listLoanInstallments.execute(stringParam(request.params.loanId, 'loanId')), 'Cuotas obtenidas correctamente.');
+  listCollateral: RequestHandler = async (request, response) => success(response, await this.container.listLoanCollateral.execute(stringParam(request.params.loanId, 'loanId')), 'Garantías obtenidas correctamente.');
+  returnCollateral: RequestHandler = async (request, response) => success(response, await this.container.returnLoanCollateral.execute(stringParam(request.params.loanId, 'loanId'), stringParam(request.params.itemId, 'itemId'), request.auth!.userId), 'Devolución de garantía registrada correctamente.');
 }

@@ -24,7 +24,7 @@ export class AuditTableComponent {
   description(entry: AuditEntry): string {
     const actions: Record<string, string> = {
       'customer.created': 'Cliente creado', 'customer.updated': 'Cliente actualizado', 'customer.status_changed': 'Estado de cliente actualizado',
-      'loan.created': 'Préstamo registrado', 'loan.status_changed': 'Estado de préstamo actualizado',
+      'loan.created': 'Préstamo registrado', 'loan.status_changed': 'Estado de préstamo actualizado', 'loan.collateral_returned': 'Garantía devuelta',
       'payment.registered': 'Pago registrado', 'payment.cancelled': 'Pago anulado',
       'cash.opened': 'Caja abierta', 'cash.closed': 'Caja cerrada', 'cash.movement_created': 'Movimiento de caja registrado',
       'user.created': 'Usuario creado', 'user.updated': 'Usuario actualizado', 'role.created': 'Rol creado', 'role.updated': 'Rol actualizado',

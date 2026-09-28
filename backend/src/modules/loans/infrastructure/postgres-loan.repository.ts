@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from 'pg';
 
 import type { NewInstallment } from '../../installments/domain/installment.js';
+import type { NewLoanCollateralInput } from '../domain/loan-collateral.js';
 import type { PersistedLoanInput, LoanListCriteria, LoanPage, LoanRepository } from '../domain/loan-repository.js';
 import { Loan, type LoanData, type LoanStatus } from '../domain/loan.js';
 
@@ -24,7 +25,7 @@ const mapRow = (row: LoanRow): Loan => new Loan({
 export class PostgresLoanRepository implements LoanRepository {
   constructor(private readonly database: Pool) {}
 
-  async createWithInstallments(input: PersistedLoanInput, installments: NewInstallment[]): Promise<Loan> {
+  async createWithInstallments(input: PersistedLoanInput, installments: NewInstallment[], collateralItems: NewLoanCollateralInput[] = []): Promise<Loan> {
     if (!installments.length) throw new Error('Un préstamo requiere al menos una cuota.');
     const client = await this.database.connect();
     try {
@@ -36,6 +37,7 @@ export class PostgresLoanRepository implements LoanRepository {
       );
       const loan = created.rows[0]!;
       for (const installment of installments) await this.insertInstallment(client, loan.id, installment);
+      for (const item of collateralItems) await this.insertCollateralItem(client, loan.id, item);
       await client.query('COMMIT');
       return mapRow(loan);
     } catch (error) {
@@ -86,6 +88,14 @@ export class PostgresLoanRepository implements LoanRepository {
       `INSERT INTO installments (loan_id, installment_number, due_date, principal_amount, interest_amount, scheduled_amount, outstanding_amount, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [loanId, installment.installmentNumber, installment.dueDate, installment.principalAmount, installment.interestAmount, installment.scheduledAmount, installment.outstandingAmount, installment.status],
+    );
+  }
+
+  private async insertCollateralItem(client: PoolClient, loanId: string, item: NewLoanCollateralInput): Promise<void> {
+    await client.query(
+      `INSERT INTO loan_collateral_items (loan_id, description, category, brand, model, serial_number, physical_condition, estimated_value, notes, received_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,COALESCE($10::date,CURRENT_DATE))`,
+      [loanId, item.description, item.category, item.brand ?? null, item.model ?? null, item.serialNumber ?? null, item.physicalCondition, item.estimatedValue, item.notes ?? null, item.receivedAt ?? null],
     );
   }
 }

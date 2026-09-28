@@ -16,7 +16,8 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { CustomerFormComponent } from '../../../customers/components/customer-form/customer-form.component';
 import type { Customer, CustomerPayload } from '../../../customers/models/customer.model';
 import { CustomersService } from '../../../customers/services/customers.service';
-import type { CreateLoanPayload, LoanPreview, PaymentFrequency } from '../../models/loan.model';
+import { CollateralFormDialogComponent, type CollateralFormDialogData } from '../collateral-form-dialog/collateral-form-dialog.component';
+import type { CreateLoanPayload, LoanCollateralPayload, LoanPreview, PaymentFrequency } from '../../models/loan.model';
 import { LoansService } from '../../services/loans.service';
 
 export interface LoanFormData { customers: Customer[]; }
@@ -45,6 +46,7 @@ export class LoanFormComponent {
   readonly auth = inject(AuthService);
   readonly data = inject<LoanFormData>(MAT_DIALOG_DATA);
   readonly customers = signal<Customer[]>(this.data.customers);
+  readonly collateralItems = signal<LoanCollateralPayload[]>([]);
   readonly creatingCustomer = signal(false);
   readonly preview = signal<LoanPreview | null>(null);
   readonly previewLoading = signal(false);
@@ -79,7 +81,7 @@ export class LoanFormComponent {
       }),
       debounceTime(300),
       switchMap(() => {
-        const payload = this.toPayload();
+        const payload = this.toPayload(false);
         if (!payload) return EMPTY;
         const generation = this.previewGeneration;
         this.previewLoading.set(true);
@@ -129,6 +131,35 @@ export class LoanFormComponent {
   get reviewFrequency(): string {
     this.reviewRevision();
     return this.frequencies.find((item) => item.value === this.form.controls.paymentFrequency.value)?.label ?? 'Pendiente';
+  }
+
+  addCollateralItem(): void { this.openCollateralDialog(); }
+
+  editCollateralItem(index: number): void {
+    const item = this.collateralItems()[index];
+    if (item) this.openCollateralDialog(index, item);
+  }
+
+  removeCollateralItem(index: number): void {
+    this.collateralItems.update((items) => items.filter((_, itemIndex) => itemIndex !== index));
+    this.reviewRevision.update((revision) => revision + 1);
+  }
+
+  private openCollateralDialog(index?: number, collateral?: LoanCollateralPayload): void {
+    const data: CollateralFormDialogData = collateral ? { collateral } : {};
+    this.dialog.open<CollateralFormDialogComponent, CollateralFormDialogData, LoanCollateralPayload>(CollateralFormDialogComponent, {
+      data,
+      width: '600px',
+      maxWidth: '95vw',
+      autoFocus: 'first-tabbable',
+    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((draft) => {
+      if (!draft) return;
+      this.collateralItems.update((items) => {
+        if (index === undefined) return [...items, draft];
+        return items.map((item, itemIndex) => itemIndex === index ? draft : item);
+      });
+      this.reviewRevision.update((revision) => revision + 1);
+    });
   }
 
   get reviewIssues(): string[] {
@@ -191,7 +222,7 @@ export class LoanFormComponent {
     if (payload) this.dialogRef.close(payload);
   }
 
-  private toPayload(): CreateLoanPayload | null {
+  private toPayload(includeCollateral = true): CreateLoanPayload | null {
     if (this.form.invalid) return null;
     const value = this.form.getRawValue();
     if (value.principalAmount === null || value.interestRate === null || value.installmentCount === null) return null;
@@ -200,6 +231,8 @@ export class LoanFormComponent {
       installmentCount: value.installmentCount, disbursementDate: value.disbursementDate, firstInstallmentDate: value.firstInstallmentDate,
     };
     if (value.observations.trim()) payload.observations = value.observations.trim();
+    const collateralItems = this.collateralItems();
+    if (includeCollateral && collateralItems.length) payload.collateralItems = collateralItems;
     return payload;
   }
 }

@@ -6,6 +6,21 @@ import { paymentFrequencies } from '../../../installments/domain/payment-frequen
 import { loanStatuses, manuallySettableLoanStatuses } from '../../domain/loan.js';
 
 const decimal = (minimum: number) => Joi.alternatives().try(Joi.number().min(minimum).precision(4), Joi.string().trim().pattern(/^\d+(?:\.\d{1,4})?$/)).required();
+const positiveCurrency = Joi.alternatives().try(
+  Joi.number().greater(0).precision(2),
+  Joi.string().trim().pattern(/^\d+(?:\.\d{1,2})?$/).custom((value, helpers) => Number(value) > 0 ? value : helpers.error('any.invalid')),
+).required().messages({ 'any.invalid': 'El valor estimado debe ser mayor que cero y tener hasta dos decimales.' });
+const collateralItemSchema = Joi.object({
+  description: Joi.string().trim().min(2).max(250).required(),
+  category: Joi.string().trim().min(2).max(80).required(),
+  brand: Joi.string().trim().max(100).allow('').optional(),
+  model: Joi.string().trim().max(100).allow('').optional(),
+  serialNumber: Joi.string().trim().max(100).allow('').optional(),
+  physicalCondition: Joi.string().trim().min(2).max(500).required(),
+  estimatedValue: positiveCurrency,
+  notes: Joi.string().trim().max(1000).allow('').optional(),
+  receivedAt: Joi.string().isoDate().custom((value: string) => value.slice(0, 10)).optional(),
+});
 
 export const createLoanSchema = Joi.object({
   customerId: Joi.string().uuid().required(),
@@ -17,6 +32,7 @@ export const createLoanSchema = Joi.object({
   disbursementDate: Joi.string().isoDate().custom((value: string) => value.slice(0, 10)).required(),
   firstInstallmentDate: Joi.string().isoDate().custom((value: string) => value.slice(0, 10)).required(),
   observations: Joi.string().trim().max(1000).allow('').optional(),
+  collateralItems: Joi.array().items(collateralItemSchema).optional(),
 }).custom((value: { disbursementDate: string; firstInstallmentDate: string }, helpers) =>
   value.firstInstallmentDate > value.disbursementDate ? value : helpers.error('any.invalid'),
 ).messages({ 'any.invalid': 'La primera cuota debe ser posterior al desembolso.' });

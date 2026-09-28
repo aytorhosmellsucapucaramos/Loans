@@ -10,6 +10,8 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { CustomerFormComponent } from '../../../customers/components/customer-form/customer-form.component';
 import { CustomersService } from '../../../customers/services/customers.service';
 import type { Customer, CustomerPayload } from '../../../customers/models/customer.model';
+import type { LoanCollateralPayload } from '../../models/loan.model';
+import { CollateralFormDialogComponent } from '../collateral-form-dialog/collateral-form-dialog.component';
 import { LoansService } from '../../services/loans.service';
 import { LoanFormComponent } from './loan-form.component';
 
@@ -176,5 +178,77 @@ describe('LoanFormComponent', () => {
     expect(dialogRef.close).not.toHaveBeenCalled();
     expect(component.reviewIssues).toContain('monto');
     expect(component.reviewIssues).toContain('número de cuotas');
+  });
+
+  it('adds object draft locally and keeps loan fields', async () => {
+    await configure();
+    const component = TestBed.createComponent(LoanFormComponent).componentInstance;
+    const draft: LoanCollateralPayload = { description: 'Televisor', category: 'Electrónica', physicalCondition: 'Buen estado', estimatedValue: 500, receivedAt: '2026-09-28' };
+    customerDialogRef.afterClosed.and.returnValue(of(draft));
+    component.form.patchValue({ customerId: 'customer-1', principalAmount: 1000, interestRate: 10, paymentFrequency: 'monthly', installmentCount: 4, disbursementDate: '2026-09-15', firstInstallmentDate: '2026-10-15' });
+
+    component.addCollateralItem();
+
+    expect(customerDialog.open).toHaveBeenCalledWith(CollateralFormDialogComponent, jasmine.objectContaining({ data: {}, width: '600px' }));
+    expect(component.collateralItems()).toEqual([draft]);
+    expect(component.form.getRawValue()).toEqual(jasmine.objectContaining({ principalAmount: 1000, installmentCount: 4, customerId: 'customer-1' }));
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(loansApi.preview.calls.mostRecent().args[0].collateralItems).toBeUndefined();
+
+    component.continueToReview();
+    component.save();
+
+    expect(dialogRef.close).toHaveBeenCalledWith(jasmine.objectContaining({
+      principalAmount: 1000,
+      collateralItems: [jasmine.objectContaining({ description: 'Televisor', estimatedValue: 500 })],
+    }));
+  });
+
+  it('edits one draft through same modal and preserves other objects and loan fields', async () => {
+    await configure();
+    const component = TestBed.createComponent(LoanFormComponent).componentInstance;
+    const first: LoanCollateralPayload = { description: 'TV', category: 'Electrónica', physicalCondition: 'Bueno', estimatedValue: 500, receivedAt: '2026-09-28' };
+    const second: LoanCollateralPayload = { description: 'Laptop', category: 'Computación', physicalCondition: 'Bueno', estimatedValue: 900, receivedAt: '2026-09-28' };
+    const edited: LoanCollateralPayload = { ...first, description: 'Televisor', estimatedValue: 600 };
+    component.collateralItems.set([first, second]);
+    component.form.patchValue({ principalAmount: 1800, observations: 'No perder' });
+    customerDialogRef.afterClosed.and.returnValue(of(edited));
+
+    component.editCollateralItem(0);
+
+    expect(customerDialog.open).toHaveBeenCalledWith(CollateralFormDialogComponent, jasmine.objectContaining({ data: { collateral: first } }));
+    expect(component.collateralItems()).toEqual([edited, second]);
+    expect(component.form.getRawValue()).toEqual(jasmine.objectContaining({ principalAmount: 1800, observations: 'No perder' }));
+  });
+
+  it('removes selected draft and retains remaining guarantees and loan data', async () => {
+    await configure();
+    const component = TestBed.createComponent(LoanFormComponent).componentInstance;
+    const first: LoanCollateralPayload = { description: 'TV', category: 'Electrónica', physicalCondition: 'Bueno', estimatedValue: 500, receivedAt: '2026-09-28' };
+    const second: LoanCollateralPayload = { description: 'Laptop', category: 'Computación', physicalCondition: 'Bueno', estimatedValue: 900, receivedAt: '2026-09-28' };
+    component.collateralItems.set([first, second]);
+    component.form.patchValue({ principalAmount: 1800, observations: 'No perder' });
+
+    component.removeCollateralItem(0);
+
+    expect(component.collateralItems()).toEqual([second]);
+    expect(component.form.getRawValue()).toEqual(jasmine.objectContaining({ principalAmount: 1800, observations: 'No perder' }));
+  });
+
+  it('cancels adding or editing draft without changing existing drafts or loan data', async () => {
+    await configure();
+    const component = TestBed.createComponent(LoanFormComponent).componentInstance;
+    const existing: LoanCollateralPayload = { description: 'TV', category: 'Electrónica', physicalCondition: 'Bueno', estimatedValue: 500, receivedAt: '2026-09-28' };
+    component.collateralItems.set([existing]);
+    component.form.patchValue({ principalAmount: 1800, observations: 'No perder' });
+    customerDialogRef.afterClosed.and.returnValue(of(undefined));
+
+    component.editCollateralItem(0);
+
+    expect(component.collateralItems()).toEqual([existing]);
+    expect(component.form.getRawValue()).toEqual(jasmine.objectContaining({ principalAmount: 1800, observations: 'No perder' }));
+    component.addCollateralItem();
+    expect(component.collateralItems()).toEqual([existing]);
+    expect(component.form.getRawValue()).toEqual(jasmine.objectContaining({ principalAmount: 1800, observations: 'No perder' }));
   });
 });

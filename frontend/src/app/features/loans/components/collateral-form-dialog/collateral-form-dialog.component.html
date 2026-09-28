@@ -1,0 +1,18 @@
+<h2 mat-dialog-title>{{ data.collateral ? 'Editar objeto en garantía' : 'Agregar objeto en garantía' }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" class="collateral-form" (ngSubmit)="save()">
+    <mat-form-field appearance="outline"><mat-label>Descripción</mat-label><input matInput formControlName="description" placeholder="Ej.: Televisor" />@if (form.controls.description.touched && form.controls.description.invalid) { <mat-error>Describe el objeto.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Categoría</mat-label><input matInput formControlName="category" placeholder="Ej.: Electrónica" />@if (form.controls.category.touched && form.controls.category.invalid) { <mat-error>Indica una categoría.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Marca</mat-label><input matInput formControlName="brand" /></mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Modelo</mat-label><input matInput formControlName="model" /></mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Número de serie</mat-label><input matInput formControlName="serialNumber" /></mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Valor estimado (S/)</mat-label><input matInput type="number" min="0.01" step="0.01" placeholder="Ej.: 500" formControlName="estimatedValue" />@if (form.controls.estimatedValue.touched && form.controls.estimatedValue.invalid) { <mat-error>Ingresa un valor mayor que cero.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline"><mat-label>Fecha de recepción</mat-label><input matInput type="date" formControlName="receivedAt" />@if (form.controls.receivedAt.touched && form.controls.receivedAt.invalid) { <mat-error>Indica la fecha de recepción.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline" class="full"><mat-label>Estado físico al recibir</mat-label><textarea matInput rows="2" formControlName="physicalCondition" placeholder="Describe el estado visible del objeto"></textarea>@if (form.controls.physicalCondition.touched && form.controls.physicalCondition.invalid) { <mat-error>Describe el estado físico.</mat-error> }</mat-form-field>
+    <mat-form-field appearance="outline" class="full"><mat-label>Notas</mat-label><textarea matInput rows="2" formControlName="notes"></textarea></mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancelar</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()">{{ data.collateral ? 'Guardar cambios' : 'Agregar objeto' }}</button>
+</mat-dialog-actions>

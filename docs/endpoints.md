@@ -144,6 +144,16 @@ Content-Type: application/json
 {"status":"cancelled"}
 ```
 
+### Garantías de préstamos
+
+Las garantías son opcionales y se registran junto con el préstamo en `POST /api/loans`, dentro de la misma transacción que crea sus cuotas. Cada objeto requiere `description`, `category`, `physicalCondition` y `estimatedValue` positivo; `brand`, `model`, `serialNumber`, `notes` y `receivedAt` son opcionales. La tasación es informativa y no interviene en el cálculo financiero.
+
+```json
+{"customerId":"uuid","principalAmount":1000,"interestRate":10,"interestType":"simple","paymentFrequency":"monthly","installmentCount":4,"disbursementDate":"2026-09-15","firstInstallmentDate":"2026-10-15","collateralItems":[{"description":"Anillo de oro","category":"Joyería","physicalCondition":"Buen estado","estimatedValue":500,"receivedAt":"2026-09-15"}]}
+```
+
+`GET /api/loans/:loanId/collateral` consulta los objetos del préstamo y requiere `loans.read`. `PATCH /api/loans/:loanId/collateral/:itemId/return` registra la devolución manual y requiere `loans.update`; solo está permitida cuando el préstamo está pagado. La respuesta registra fecha y usuario responsable. No se eliminan garantías ni se infiere confiscación.
+
 ## Pagos
 
 Los pagos se registran contra una cuota específica y el backend recalcula el saldo bajo una transacción PostgreSQL; por ello nunca se acepta un saldo enviado por el cliente. Solo admite pago la primera cuota con saldo pendiente, ordenada por número de cuota. Una cuota parcial bloquea todas las posteriores. Un intento de saltar cuota responde `422 INSTALLMENT_SEQUENCE_REQUIRED` incluso desde Bruno. Los métodos iniciales son `cash`, `bank_transfer`, `yape`, `plin` y `other`. Un pago no se elimina: `PATCH /api/payments/:id/cancel` lo anula y repone el saldo de la cuota.

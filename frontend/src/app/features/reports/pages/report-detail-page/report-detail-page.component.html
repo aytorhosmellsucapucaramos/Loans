@@ -2,9 +2,17 @@
   <div>
     <p class="eyebrow">Análisis</p>
     <h1>{{ title() }}</h1>
-    <p>Información obtenida directamente de los reportes del backend.</p>
+    <p>{{ description() }}</p>
   </div>
-  <button mat-stroked-button (click)="back()"><mat-icon>arrow_back</mat-icon>Reportes</button>
+  <div class="header-actions">
+    <button mat-stroked-button (click)="back()"><mat-icon>arrow_back</mat-icon>Reportes</button>
+    @if (canExport) {
+      <button mat-flat-button color="primary" (click)="exportReport()" [disabled]="!report() || loading() || exporting()" [attr.aria-busy]="exporting()">
+        @if (exporting()) { <mat-icon>hourglass_top</mat-icon> } @else { <mat-icon>download</mat-icon> }
+        {{ exporting() ? 'Preparando Excel…' : 'Exportar a Excel' }}
+      </button>
+    }
+  </div>
 </section>
 <sp-report-filters
   [form]="filters"
@@ -13,6 +21,26 @@
   (applyFilters)="apply()"
   (clearFilters)="clear()"
 />
+<section class="filter-summary" aria-live="polite" aria-label="Filtros aplicados">
+  <strong>Filtros aplicados</strong>
+  @if (activeFilterTags().length) {
+    <div class="filter-tags">@for (filter of activeFilterTags(); track filter.label) { <span><b>{{ filter.label }}:</b> {{ filter.value }}</span> }</div>
+  } @else {
+    <span class="no-filters">Sin filtros. Se muestran todos los resultados.</span>
+  }
+</section>
+@if (exporting()) {
+  <div class="export-progress" aria-live="polite">
+    @if (exportPhase() === 'data') {
+      <mat-progress-bar mode="determinate" [value]="exportProgress().totalPages ? exportProgress().page / exportProgress().totalPages * 100 : 0" />
+      <span>Obteniendo resultados: página {{ exportProgress().page }} de {{ exportProgress().totalPages }}.</span>
+    } @else {
+      <mat-progress-bar mode="indeterminate" />
+      <span>Preparando archivo Excel…</span>
+    }
+  </div>
+}
+@if (exportError()) { <p class="export-error" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon>{{ exportError() }}</p> }
 @if (loading()) {
   <div class="state"><mat-spinner diameter="40" /><span>Cargando reporte…</span></div>
 } @else if (error()) {

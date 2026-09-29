@@ -6,7 +6,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { map } from 'rxjs';
@@ -17,7 +16,7 @@ type NavigationItem = { label: string; icon: string; path: string; permission?: 
 
 @Component({
   selector: 'sp-main-layout',
-  imports: [AsyncPipe, RouterLink, RouterLinkActive, RouterOutlet, MatButtonModule, MatIconModule, MatListModule, MatMenuModule, MatSidenavModule, MatToolbarModule],
+  imports: [AsyncPipe, RouterLink, RouterLinkActive, RouterOutlet, MatButtonModule, MatIconModule, MatListModule, MatMenuModule, MatToolbarModule],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,6 +44,5 @@ export class MainLayoutComponent {
   moreNavigation(): NavigationItem[] { return this.navigation.filter((item) => !this.primaryPaths.includes(item.path) && this.visible(item)); }
   isActive(item: NavigationItem): boolean { return this.router.isActive(item.path, { paths: 'subset', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' }); }
   isMoreActive(): boolean { return this.moreNavigation().some((item) => this.isActive(item)); }
-  closeOnHandset(drawer: MatSidenav): void { if (this.isHandset()) void drawer.close(); }
   logout(): void { this.auth.logout(); }
 }

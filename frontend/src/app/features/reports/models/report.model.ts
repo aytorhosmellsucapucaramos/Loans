@@ -14,6 +14,8 @@ export interface CollectionReport { totals: { paymentCount: number; totalAmount:
 export interface CashReportItem { id: string; openedAt: string; closedAt: string | null; status: CashSessionStatus; openingAmount: string; incomeAmount: string; expenseAmount: string; reversalAmount: string; expectedBalance: string; differenceAmount: string | null; }
 export interface CashReport { totals: { incomeAmount: string; expenseAmount: string; reversalAmount: string; expectedBalance: string; closingDifference: string; }; page: ReportPage<CashReportItem>; }
 export interface BaseReportQuery { page: number; pageSize: number; fromDate?: string; toDate?: string; }
+export interface ReportExportFilters { fromDate?: string; toDate?: string; customerId?: string; status?: LoanStatus | InstallmentStatus | CashSessionStatus; }
+export type ReportExportItem = LoanReportItem | InstallmentReportItem | CollectionReportItem | CashReportItem;
 export interface LoanReportQuery extends BaseReportQuery { customerId?: string; status?: LoanStatus; }
 export interface InstallmentReportQuery extends BaseReportQuery { status?: InstallmentStatus; }
 export interface CashReportQuery extends BaseReportQuery { cashSessionId?: string; status?: CashSessionStatus; }

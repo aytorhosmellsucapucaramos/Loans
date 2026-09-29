@@ -1,43 +1,32 @@
-<form class="filters" [formGroup]="form" (ngSubmit)="applyFilters.emit()">
-  <mat-form-field appearance="outline"
-    ><mat-label>Desde</mat-label
-    ><input matInput type="date" formControlName="fromDate" /></mat-form-field
-  ><mat-form-field appearance="outline"
-    ><mat-label>Hasta</mat-label><input matInput type="date" formControlName="toDate"
-  /></mat-form-field>
-  @if (kind === 'loans') {
-    <mat-form-field appearance="outline"
-      ><mat-label>Cliente</mat-label
-      ><mat-select formControlName="customerId"><mat-option value="">Todos</mat-option>@for (customer of customers; track customer.id) { <mat-option [value]="customer.id">{{ customer.firstName }} {{ customer.lastName }} · {{ customer.documentType }} {{ customer.documentNumber }}</mat-option> }</mat-select></mat-form-field
-    ><mat-form-field appearance="outline"
-      ><mat-label>Estado</mat-label
-      ><mat-select formControlName="status"
-        ><mat-option value="">Todos</mat-option><mat-option value="active">Activo</mat-option
-        ><mat-option value="paid">Pagado</mat-option
-        ><mat-option value="cancelled">Cancelado</mat-option></mat-select
-      ></mat-form-field
-    >
-  } @else if (kind === 'installments') {
-    <mat-form-field appearance="outline"
-      ><mat-label>Estado</mat-label
-      ><mat-select formControlName="status"
-        ><mat-option value="">Todos</mat-option><mat-option value="pending">Pendiente</mat-option
-        ><mat-option value="paid">Pagada</mat-option
-        ><mat-option value="overdue">Vencida</mat-option></mat-select
-      ></mat-form-field
-    >
-  } @else if (kind === 'cash') {
-    <mat-form-field appearance="outline"
-      ><mat-label>Estado</mat-label
-      ><mat-select formControlName="status"
-        ><mat-option value="">Todos</mat-option><mat-option value="open">Abierta</mat-option
-        ><mat-option value="closed">Cerrada</mat-option></mat-select
-      ></mat-form-field
-    >
+<form class="filters" [formGroup]="form" (ngSubmit)="applyFilters.emit()" aria-label="Filtros del reporte">
+  <section class="filter-group period-group" aria-labelledby="period-heading">
+    <h2 id="period-heading">Periodo</h2>
+    <div class="filter-fields">
+      <mat-form-field appearance="outline"><mat-label>Fecha desde</mat-label><input matInput type="date" formControlName="fromDate" /></mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Fecha hasta</mat-label><input matInput type="date" formControlName="toDate" /></mat-form-field>
+    </div>
+  </section>
+  @if (kind === 'loans' || kind === 'installments' || kind === 'cash') {
+    <section class="filter-group other-group" aria-label="Filtros adicionales">
+      <h2>Otros filtros</h2>
+      <div class="filter-fields">
+        @if (kind === 'loans') {
+          <mat-form-field appearance="outline"><mat-label>Cliente</mat-label><mat-select formControlName="customerId"><mat-option value="">Todos los clientes</mat-option>@for (customer of customers; track customer.id) { <mat-option [value]="customer.id">{{ customer.firstName }} {{ customer.lastName }} · {{ customer.documentType }} {{ customer.documentNumber }}</mat-option> }</mat-select></mat-form-field>
+        }
+        @if (kind === 'loans') {
+          <mat-form-field appearance="outline"><mat-label>Estado del préstamo</mat-label><mat-select formControlName="status"><mat-option value="">Todos los estados</mat-option><mat-option value="active">Activo</mat-option><mat-option value="paid">Pagado</mat-option><mat-option value="cancelled">Cancelado</mat-option></mat-select></mat-form-field>
+        } @else if (kind === 'installments') {
+          <mat-form-field appearance="outline"><mat-label>Estado de la cuota</mat-label><mat-select formControlName="status"><mat-option value="">Todos los estados</mat-option><mat-option value="pending">Pendiente</mat-option><mat-option value="paid">Pagada</mat-option><mat-option value="overdue">Vencida</mat-option></mat-select></mat-form-field>
+        } @else {
+          <mat-form-field appearance="outline"><mat-label>Estado de la caja</mat-label><mat-select formControlName="status"><mat-option value="">Todos los estados</mat-option><mat-option value="open">Abierta</mat-option><mat-option value="closed">Cerrada</mat-option></mat-select></mat-form-field>
+        }
+      </div>
+    </section>
   }
-  <button mat-flat-button color="primary" type="submit">
-    <mat-icon>filter_alt</mat-icon>Filtrar</button
-  ><button mat-button type="button" (click)="clearFilters.emit()">Limpiar</button>
+  <div class="filter-actions">
+    <button mat-flat-button color="primary" type="submit"><mat-icon>filter_alt</mat-icon>Aplicar filtros</button>
+    <button mat-button type="button" (click)="clearFilters.emit()"><mat-icon>filter_alt_off</mat-icon>Limpiar filtros</button>
+  </div>
   @if (form.hasError('dateRange')) {
     <p class="error">La fecha inicial no puede ser posterior a la fecha final.</p>
   }

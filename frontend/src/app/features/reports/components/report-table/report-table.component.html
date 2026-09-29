@@ -1,1 +1,22 @@
-<sp-scrollable-table><div #scrollViewport class="table-container"><table mat-table [dataSource]="rows"><ng-container *ngFor="let column of columns" [matColumnDef]="column.key"><th mat-header-cell *matHeaderCellDef>{{ column.label }}</th><td mat-cell *matCellDef="let row">@if (column.kind === 'money') { {{ value(row,column.key) | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else if (column.kind === 'date') { {{ value(row,column.key) | date:'dd/MM/yyyy':'':'es-PE' }} } @else if (column.kind === 'status') { <mat-chip [ngClass]="statusClass(value(row,column.key))">{{ label(value(row,column.key)) }}</mat-chip> } @else { {{ value(row,column.key) ?? '—' }} }</td></ng-container><tr mat-header-row *matHeaderRowDef="columns"></tr><tr mat-row *matRowDef="let row; columns: columns;"></tr></table></div></sp-scrollable-table>
+<div class="report-table-desktop"><sp-scrollable-table><div #scrollViewport class="table-container"><table mat-table [dataSource]="rows"><ng-container *ngFor="let column of columns" [matColumnDef]="column.key"><th mat-header-cell *matHeaderCellDef>{{ column.label }}</th><td mat-cell *matCellDef="let row">@if (column.kind === 'money') { {{ value(row,column.key) | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else if (column.kind === 'date') { {{ value(row,column.key) | date:'dd/MM/yyyy':'':'es-PE' }} } @else if (column.kind === 'status') { <mat-chip [ngClass]="statusClass(value(row,column.key))">{{ label(value(row,column.key)) }}</mat-chip> } @else { {{ value(row,column.key) ?? '—' }} }</td></ng-container><tr mat-header-row *matHeaderRowDef="columns"></tr><tr mat-row *matRowDef="let row; columns: columns;"></tr></table></div></sp-scrollable-table></div>
+<div class="report-table-mobile">
+  @for (row of rows; track $index) {
+    <article class="report-result-card">
+      @if (columns[0]; as primary) {
+        <h2>@if (primary.kind === 'money') { {{ value(row,primary.key) | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} } @else if (primary.kind === 'date') { {{ value(row,primary.key) | date:'dd/MM/yyyy':'':'es-PE' }} } @else if (primary.kind === 'status') { {{ label(value(row,primary.key)) }} } @else { {{ value(row,primary.key) ?? 'Resultado' }} }</h2>
+      }
+      <dl>
+        @for (column of columns; track column.key; let index = $index) {
+          @if (index > 0) {
+            <div><dt>{{ column.label }}</dt><dd>
+              @if (column.kind === 'money') { {{ value(row,column.key) | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }} }
+              @else if (column.kind === 'date') { {{ value(row,column.key) | date:'dd/MM/yyyy':'':'es-PE' }} }
+              @else if (column.kind === 'status') { <mat-chip [ngClass]="statusClass(value(row,column.key))">{{ label(value(row,column.key)) }}</mat-chip> }
+              @else { {{ value(row,column.key) ?? '—' }} }
+            </dd></div>
+          }
+        }
+      </dl>
+    </article>
+  }
+</div>

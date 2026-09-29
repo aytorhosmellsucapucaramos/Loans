@@ -1,1 +1,13 @@
-.page-header { display:flex; justify-content:space-between; align-items:end; gap:1rem; margin-bottom:1rem; } .eyebrow { color:var(--sp-brand); font-weight:600; margin:0 0 .25rem; } h1 { margin:0; } .page-header p:last-child { color:var(--sp-text-muted); margin-bottom:0; } mat-paginator { background:var(--sp-surface); border-radius:0 0 12px 12px; } .state { min-height:260px; display:grid; gap:1rem; place-content:center; justify-items:center; color:var(--sp-text-muted); } .error { color:var(--sp-error); } @media(max-width:600px){.page-header{align-items:stretch;flex-direction:column;}}
+.page-header { display:flex; justify-content:space-between; align-items:end; gap:1rem; margin-bottom:1rem; } .eyebrow { color:var(--sp-brand); font-weight:600; margin:0 0 .25rem; } h1 { margin:0; } .page-header p:last-child { color:var(--sp-text-muted); margin-bottom:0; }
+.header-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.5rem; }
+.header-actions button { min-height:44px; }
+.filter-summary { display:flex; align-items:center; flex-wrap:wrap; gap:.4rem .8rem; margin:.35rem 0 1rem; padding:.7rem .85rem; border-radius:9px; background:var(--sp-surface-soft); color:var(--sp-text-soft); font-size:.85rem; }
+.filter-summary > strong { color:var(--sp-text); }
+.filter-tags { display:flex; flex-wrap:wrap; gap:.4rem; }
+.filter-tags span { padding:.25rem .55rem; border:1px solid var(--sp-border-soft); border-radius:999px; background:var(--sp-surface); }
+.no-filters { color:var(--sp-text-muted); }
+.export-progress { display:grid; gap:.35rem; margin:0 0 1rem; color:var(--sp-text-soft); font-size:.82rem; }
+.export-error { display:flex; align-items:flex-start; gap:.4rem; color:var(--sp-error); }
+mat-paginator { background:var(--sp-surface); border-radius:0 0 12px 12px; }
+.state { min-height:260px; display:grid; gap:1rem; place-content:center; justify-items:center; color:var(--sp-text-muted); } .error { color:var(--sp-error); }
+@media(max-width:600px){.page-header{align-items:stretch;flex-direction:column;}.header-actions{display:grid;grid-template-columns:1fr 1fr;}.header-actions button{min-width:0;}.filter-summary{align-items:flex-start;flex-direction:column;}}

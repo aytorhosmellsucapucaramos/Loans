@@ -1,1 +1,27 @@
-<section class="page-header"><p class="eyebrow">Análisis</p><h1>Reportes</h1><p>Consulta la información operativa con datos agregados del backend.</p></section><section class="reports">@for (report of reports; track report.kind) { <a [routerLink]="['/reports',report.kind]"><mat-card><mat-card-content><mat-icon>{{ report.icon }}</mat-icon><h2>{{ report.title }}</h2><p>{{ report.description }}</p></mat-card-content></mat-card></a> }</section>
+<section class="page-header">
+  <p class="eyebrow">Análisis</p>
+  <h1>Reportes</h1>
+  <p>Consulta la información operativa con datos agregados del backend.</p>
+</section>
+
+<section class="reports" aria-label="Tipos de reportes">
+  @for (report of reports; track report.kind) {
+    <a
+      class="report-link"
+      [routerLink]="['/reports', report.kind]"
+      [attr.aria-labelledby]="'report-title-' + report.kind"
+      [attr.aria-describedby]="'report-description-' + report.kind"
+    >
+      <mat-card class="report-card">
+        <mat-card-content>
+          <mat-icon class="report-icon" aria-hidden="true">{{ report.icon }}</mat-icon>
+          <div class="report-copy">
+            <h2 [id]="'report-title-' + report.kind">{{ report.title }}</h2>
+            <p [id]="'report-description-' + report.kind">{{ report.description }}</p>
+          </div>
+          <mat-icon class="report-arrow" aria-hidden="true">arrow_forward</mat-icon>
+        </mat-card-content>
+      </mat-card>
+    </a>
+  }
+</section>

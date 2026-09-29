@@ -16,18 +16,22 @@
   } @else if (error()) {
     <div class="state error"><mat-icon>error</mat-icon><span>{{ error() }}</span><button mat-stroked-button (click)="load()">Reintentar</button></div>
   } @else if (summary(); as data) {
-    <p class="updated">Última actualización: {{ updatedAt() | date:'dd/MM/yyyy HH:mm:ss':'':'es-PE' }}</p>
-    <section class="cards">
-      <mat-card><mat-card-content><mat-icon>groups</mat-icon><h2>{{ data.activeCustomers }}</h2><p>clientes activos</p></mat-card-content></mat-card>
-      <mat-card><mat-card-content><mat-icon>account_balance_wallet</mat-icon><h2>{{ data.activeLoans }}</h2><p>préstamos activos</p></mat-card-content></mat-card>
-      <mat-card><mat-card-content><mat-icon>trending_up</mat-icon><h2>{{ data.totalDisbursed | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</h2><p>monto total prestado</p></mat-card-content></mat-card>
-      <mat-card><mat-card-content><mat-icon>schedule</mat-icon><h2>{{ data.totalOutstanding | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</h2><p>monto pendiente</p></mat-card-content></mat-card>
-      <mat-card><mat-card-content><mat-icon>payments</mat-icon><h2>{{ data.totalCollected | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</h2><p>total cobrado</p></mat-card-content></mat-card>
-      <mat-card><mat-card-content><mat-icon>warning</mat-icon><h2>{{ data.overdueInstallments }}</h2><p>cuotas vencidas</p></mat-card-content></mat-card>
-      <mat-card><mat-card-content><mat-icon>today</mat-icon><h2>{{ data.paymentsToday.totalAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</h2><p>{{ data.paymentsToday.count }} pagos del día</p></mat-card-content></mat-card>
-      <mat-card><mat-card-content><mat-icon>point_of_sale</mat-icon><h2>{{ data.currentCashBalance | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</h2><p>saldo actual de caja</p></mat-card-content></mat-card>
-    </section>
-    <section class="collection-agenda" aria-labelledby="agenda-title">
+    <div class="dashboard-content">
+      <section class="indicator-panel" aria-label="Indicadores del sistema">
+        <p class="updated">Última actualización: {{ updatedAt() | date:'dd/MM/yyyy HH:mm:ss':'':'es-PE' }}</p>
+        <section class="cards">
+          <mat-card><mat-card-content><mat-icon>groups</mat-icon><h2>{{ data.activeCustomers }}</h2><p>clientes activos</p></mat-card-content></mat-card>
+          <mat-card><mat-card-content><mat-icon>account_balance_wallet</mat-icon><h2>{{ data.activeLoans }}</h2><p>préstamos activos</p></mat-card-content></mat-card>
+          <mat-card><mat-card-content><mat-icon>trending_up</mat-icon><h2>{{ data.totalDisbursed | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</h2><p>monto total prestado</p></mat-card-content></mat-card>
+          <mat-card><mat-card-content><mat-icon>schedule</mat-icon><h2>{{ data.totalOutstanding | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</h2><p>monto pendiente</p></mat-card-content></mat-card>
+          <mat-card><mat-card-content><mat-icon>payments</mat-icon><h2>{{ data.totalCollected | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</h2><p>total cobrado</p></mat-card-content></mat-card>
+          <mat-card><mat-card-content><mat-icon>warning</mat-icon><h2>{{ data.overdueInstallments }}</h2><p>cuotas vencidas</p></mat-card-content></mat-card>
+          <mat-card><mat-card-content><mat-icon>today</mat-icon><h2>{{ data.paymentsToday.count }}</h2><p>pagos del día</p></mat-card-content></mat-card>
+          <mat-card><mat-card-content><mat-icon>paid</mat-icon><h2>{{ data.paymentsToday.totalAmount | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</h2><p>monto cobrado hoy</p></mat-card-content></mat-card>
+          <mat-card><mat-card-content><mat-icon>point_of_sale</mat-icon><h2>{{ data.currentCashBalance | currency:'PEN':'symbol-narrow':'1.2-2':'es-PE' }}</h2><p>saldo actual de caja</p></mat-card-content></mat-card>
+        </section>
+      </section>
+      <section class="collection-agenda" aria-labelledby="agenda-title">
       <header class="agenda-header">
         <div><p class="eyebrow">Seguimiento</p><h2 id="agenda-title">Agenda de cobranza</h2></div>
         <button mat-stroked-button (click)="loadAgenda()" [disabled]="todayLoading() || overdueLoading()" aria-label="Actualizar agenda">
@@ -84,7 +88,8 @@
           }
         </article>
       </div>
-    </section>
+      </section>
+    </div>
   } @else {
     <div class="state"><mat-icon>analytics</mat-icon><span>No hay datos disponibles para el resumen.</span></div>
   }

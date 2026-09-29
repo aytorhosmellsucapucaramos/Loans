@@ -55,4 +55,36 @@ describe('DashboardPageComponent', () => {
     expect(reports.summary).not.toHaveBeenCalled();
     expect(reports.installments).not.toHaveBeenCalled();
   });
+
+  it('mantiene visibles los nueve indicadores y separa cantidad y monto de pagos del día', async () => {
+    const reports = jasmine.createSpyObj<ReportsService>('ReportsService', ['summary', 'installments']);
+    reports.summary.and.returnValue(of({
+      activeCustomers: 12,
+      activeLoans: 8,
+      totalDisbursed: '1200.00',
+      totalOutstanding: '600.00',
+      totalCollected: '400.00',
+      overdueInstallments: 2,
+      paymentsToday: { count: 3, totalAmount: '90.00' },
+      currentCashBalance: '250.00',
+    }));
+    reports.installments.and.returnValue(of(emptyInstallmentReport));
+    await TestBed.configureTestingModule({
+      imports: [DashboardPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { user$: of({ firstName: 'Ana' }), hasPermission: () => true } },
+        { provide: ReportsService, useValue: reports },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DashboardPageComponent);
+    fixture.detectChanges();
+    const cards = fixture.nativeElement.querySelectorAll('.cards mat-card') as NodeListOf<HTMLElement>;
+    expect(cards.length).toBe(9);
+    expect(cards[6].textContent).toContain('3');
+    expect(cards[6].textContent).toContain('pagos del día');
+    expect(cards[7].textContent).toContain('monto cobrado hoy');
+    expect(cards[8].textContent).toContain('saldo actual de caja');
+  });
 });

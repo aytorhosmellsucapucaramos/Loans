@@ -14,6 +14,7 @@ const paymentRow = {
   status: 'registered' as const,
   created_at: new Date(),
 };
+const scope = { userId: 'user-1', isAdmin: true };
 
 const createDatabase = (responses: Array<{ rows: unknown[] }>) => {
   const client = {
@@ -62,7 +63,7 @@ describe('PostgresPaymentRepository', () => {
       { rows: [] },
       { rows: [] },
     ]);
-    const result = await new PostgresPaymentRepository(database as never, cash).register(input);
+    const result = await new PostgresPaymentRepository(database as never, cash).register(input, scope);
     expect(result.data).toMatchObject({ id: 'payment-1', status: 'registered', amount: '50.00' });
     const statements = client.query.mock.calls.map(([sql]) => String(sql));
     expect(statements).toEqual(
@@ -90,7 +91,7 @@ describe('PostgresPaymentRepository', () => {
       { rows: [] },
     ]);
     await expect(
-      new PostgresPaymentRepository(database as never, cash).register(input),
+      new PostgresPaymentRepository(database as never, cash).register(input, scope),
     ).rejects.toMatchObject<AppError>({ code: 'INSTALLMENT_NOT_FOUND' });
     const statements = client.query.mock.calls.map(([sql]) => String(sql));
     expect(statements).toEqual(
@@ -129,7 +130,7 @@ describe('PostgresPaymentRepository', () => {
     await new PostgresPaymentRepository(database as never, cash).register({
       ...input,
       paymentMethod: 'yape',
-    });
+    }, scope);
     expect(cash.registerPaymentIncome).not.toHaveBeenCalled();
     expect(cash.requireOpenCashSession).toHaveBeenCalledWith(expect.anything(), 'user-1');
   });
@@ -162,6 +163,7 @@ describe('PostgresPaymentRepository', () => {
     const result = await new PostgresPaymentRepository(database as never, cash).cancel(
       'payment-1',
       'user-1',
+      scope,
     );
     expect(result.data.status).toBe('cancelled');
     const statements = client.query.mock.calls.map(([sql]) => String(sql));
@@ -205,7 +207,7 @@ describe('PostgresPaymentRepository', () => {
       new AppError(422, 'CASH_SESSION_REQUIRED', 'Sin caja'),
     );
     await expect(
-      new PostgresPaymentRepository(database as never, cash).register(input),
+      new PostgresPaymentRepository(database as never, cash).register(input, scope),
     ).rejects.toMatchObject<AppError>({ code: 'CASH_SESSION_REQUIRED' });
     expect(client.query.mock.calls.map(([sql]) => String(sql))).toEqual(
       expect.arrayContaining([expect.stringContaining('ROLLBACK')]),
@@ -220,8 +222,31 @@ describe('PostgresPaymentRepository', () => {
       { rows: [{ id: 'installment-1', loan_id: 'loan-1', scheduled_amount: '50.00', outstanding_amount: '50.00', status: 'pending' }] },
       { rows: [] },
     ]);
-    await expect(new PostgresPaymentRepository(database as never, cash).register({ ...input, installmentId: 'installment-4' })).rejects.toMatchObject<AppError>({ code: 'INSTALLMENT_SEQUENCE_REQUIRED' });
+    await expect(new PostgresPaymentRepository(database as never, cash).register({ ...input, installmentId: 'installment-4' }, scope)).rejects.toMatchObject<AppError>({ code: 'INSTALLMENT_SEQUENCE_REQUIRED' });
     expect(client.query.mock.calls.map(([sql]) => String(sql))).toEqual(expect.arrayContaining([expect.stringContaining('FOR UPDATE'), expect.stringContaining('ROLLBACK')]));
     expect(client.query.mock.calls.map(([sql]) => String(sql)).some((sql) => sql.includes('INSERT INTO payments'))).toBe(false);
+  });
+
+  it('aplica ownership en listado, detalle y registro transaccional', async () => {
+    const queries: Array<{ sql: string; values: unknown[] }> = [];
+    const database = { query: jest.fn(async (sql: string, values: unknown[] = []) => { queries.push({ sql, values }); return sql.includes('COUNT(*)') ? { rows: [{ total: '0' }] } : { rows: [] }; }), connect: jest.fn() };
+    const repository = new PostgresPaymentRepository(database as never, cash);
+    const userScope = { userId: 'owner-1', isAdmin: false };
+    await repository.findPage({ page: 1, pageSize: 10 }, userScope);
+    await repository.findById('payment-1', userScope);
+
+    expect(queries[0]?.sql).toContain('JOIN loans l ON l.id = p.loan_id JOIN customers c ON c.id = l.customer_id');
+    expect(queries[0]?.sql).toContain('c.user_id = $1');
+    expect(queries[1]?.sql).toContain('c.user_id = $1');
+    expect(queries[1]?.values).toEqual(['owner-1']);
+
+    const client = { query: jest.fn().mockImplementation(async (sql: string) => sql.includes('SELECT l.id, l.status') ? { rows: [] } : { rows: [] }), release: jest.fn() };
+    const transactionalRepository = new PostgresPaymentRepository({ connect: jest.fn().mockResolvedValue(client) } as never, cash);
+    await expect(transactionalRepository.register(input, userScope)).rejects.toMatchObject<AppError>({ code: 'LOAN_NOT_FOUND' });
+    const lockQuery = client.query.mock.calls.find(([sql]) => String(sql).includes('SELECT l.id, l.status'));
+    expect(lockQuery?.[0]).toContain('JOIN customers c ON c.id = l.customer_id');
+    expect(lockQuery?.[0]).toContain('c.user_id = $2');
+    expect(lockQuery?.[1]).toEqual(['loan-1', 'owner-1']);
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
   });
 });

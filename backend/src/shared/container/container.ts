@@ -88,7 +88,7 @@ export const createContainer = (database: Pool = pool) => {
     listLoanCollateral: new ListLoanCollateralUseCase(loans, loanCollateral),
     returnLoanCollateral: new ReturnLoanCollateralUseCase(loans, loanCollateral, loanAudit),
     getInstallment: new GetInstallmentUseCase(installments),
-    listLoanInstallments: new ListLoanInstallmentsUseCase(installments),
+    listLoanInstallments: new ListLoanInstallmentsUseCase(loans, installments),
     listPayments: new ListPaymentsUseCase(payments),
     getPayment: new GetPaymentUseCase(payments),
     registerPayment: new RegisterPaymentUseCase(payments, paymentAudit),

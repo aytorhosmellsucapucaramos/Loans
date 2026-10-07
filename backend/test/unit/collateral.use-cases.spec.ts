@@ -13,6 +13,7 @@ const collateral = (custodyStatus: 'in_custody' | 'returned') => new LoanCollate
   id: 'item-1', loanId: 'loan-1', description: 'Televisor', category: 'Electrónica', brand: null, model: null, serialNumber: null, physicalCondition: 'Buen estado', estimatedValue: '500.00', notes: null,
   receivedAt: '2026-01-01', custodyStatus, returnedAt: custodyStatus === 'returned' ? new Date() : null, returnedBy: custodyStatus === 'returned' ? { id: 'actor-1', firstName: 'Ana', lastName: 'Pérez' } : null, createdAt: new Date(), updatedAt: new Date(),
 });
+const scope = { userId: 'actor-1', isAdmin: true };
 
 describe('ReturnLoanCollateralUseCase', () => {
   const loans: LoanRepository = { findById: jest.fn(), findPage: jest.fn(), updateStatus: jest.fn(), createWithInstallments: jest.fn() };
@@ -25,7 +26,7 @@ describe('ReturnLoanCollateralUseCase', () => {
   it('rechaza devolución antes de pagar préstamo y no modifica custodia', async () => {
     (loans.findById as jest.Mock).mockResolvedValue(loan('active'));
 
-    await expect(useCase.execute('loan-1', 'item-1', 'actor-1')).rejects.toMatchObject<AppError>({ code: 'COLLATERAL_RETURN_REQUIRES_PAID_LOAN', statusCode: 422 });
+    await expect(useCase.execute('loan-1', 'item-1', 'actor-1', scope)).rejects.toMatchObject<AppError>({ code: 'COLLATERAL_RETURN_REQUIRES_PAID_LOAN', statusCode: 422 });
     expect(items.returnItem).not.toHaveBeenCalled();
     expect(audit.record).not.toHaveBeenCalled();
   });
@@ -35,7 +36,7 @@ describe('ReturnLoanCollateralUseCase', () => {
     (items.findById as jest.Mock).mockResolvedValue(collateral('in_custody'));
     (items.returnItem as jest.Mock).mockResolvedValue(collateral('returned'));
 
-    await expect(useCase.execute('loan-1', 'item-1', 'actor-1')).resolves.toMatchObject({ custodyStatus: 'returned', returnedBy: { id: 'actor-1' } });
+    await expect(useCase.execute('loan-1', 'item-1', 'actor-1', scope)).resolves.toMatchObject({ custodyStatus: 'returned', returnedBy: { id: 'actor-1' } });
     expect(items.returnItem).toHaveBeenCalledWith('loan-1', 'item-1', 'actor-1');
     expect(audit.record).toHaveBeenCalledWith('loan.collateral_returned', 'actor-1', 'loan-1', { collateralItemId: 'item-1' });
   });
@@ -44,7 +45,7 @@ describe('ReturnLoanCollateralUseCase', () => {
     (loans.findById as jest.Mock).mockResolvedValue(loan('paid'));
     (items.findById as jest.Mock).mockResolvedValue(collateral('returned'));
 
-    await expect(useCase.execute('loan-1', 'item-1', 'actor-1')).rejects.toMatchObject<AppError>({ code: 'COLLATERAL_ALREADY_RETURNED', statusCode: 409 });
+    await expect(useCase.execute('loan-1', 'item-1', 'actor-1', scope)).rejects.toMatchObject<AppError>({ code: 'COLLATERAL_ALREADY_RETURNED', statusCode: 409 });
     expect(items.returnItem).not.toHaveBeenCalled();
   });
 });

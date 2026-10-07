@@ -16,5 +16,113 @@ import { CloseCashFormComponent } from '../../components/close-cash-form/close-c
 import { OpenCashFormComponent } from '../../components/open-cash-form/open-cash-form.component';
 import type { CashMovement, CashMovementPayload, CashSession, CloseCashPayload, OpenCashPayload } from '../../models/cash.model';
 import { CashService } from '../../services/cash.service';
-@Component({ selector: 'sp-cash-page', imports: [CurrencyPipe, DatePipe, NgClass, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, CashMovementsTableComponent], templateUrl: './cash-page.component.html', styleUrl: './cash-page.component.scss', changeDetection: ChangeDetectionStrategy.OnPush })
-export class CashPageComponent { private readonly api = inject(CashService); private readonly dialog = inject(MatDialog); private readonly notifications = inject(NotificationService); private readonly router = inject(Router); readonly auth = inject(AuthService); readonly session = signal<CashSession | null>(null); readonly movements = signal<CashMovement[]>([]); readonly loading = signal(true); readonly error = signal<string | null>(null); readonly noOpenSession = signal(false); constructor() { this.load(); } load(): void { this.loading.set(true); this.error.set(null); this.noOpenSession.set(false); this.api.current().pipe(switchMap((session) => forkJoin({ session: [session], movements: this.api.movements(session.id) })), finalize(() => this.loading.set(false))).subscribe({ next: ({ session, movements }) => { this.session.set(session); this.movements.set(movements); }, error: (error: HttpErrorResponse) => { this.session.set(null); this.movements.set([]); const code = error.error?.errors?.[0]?.code; if (error.status === 404 || code === 'OPEN_CASH_SESSION_NOT_FOUND') this.noOpenSession.set(true); else this.error.set('No fue posible cargar la caja actual.'); } }); } open(): void { this.dialog.open(OpenCashFormComponent, { width: '480px', maxWidth: '95vw' }).afterClosed().pipe(switchMap((payload: OpenCashPayload | undefined) => payload ? this.api.open(payload) : [])).subscribe({ next: (session) => { if (session) { this.notifications.success('Caja abierta correctamente.'); this.load(); } } }); } movement(type: 'income' | 'expense'): void { const session = this.session(); if (!session || session.status !== 'open') return; this.dialog.open(CashMovementFormComponent, { width: '560px', maxWidth: '95vw', data: { type } }).afterClosed().pipe(switchMap((payload: CashMovementPayload | undefined) => payload ? this.api.movement(session.id, type, payload) : [])).subscribe({ next: (movement) => { if (movement) { this.notifications.success(type === 'income' ? 'Ingreso registrado correctamente.' : 'Egreso registrado correctamente.'); this.load(); } } }); } close(): void { const session = this.session(); if (!session || session.status !== 'open') return; this.dialog.open(CloseCashFormComponent, { width: '520px', maxWidth: '95vw', data: session }).afterClosed().pipe(switchMap((payload: CloseCashPayload | undefined) => payload ? this.api.close(session.id, payload) : [])).subscribe({ next: (closed) => { if (closed) { this.session.set(closed); this.noOpenSession.set(false); this.notifications.success('Caja cerrada correctamente.'); } } }); } history(): void { void this.router.navigate(['/cash/history']); } }
+@Component({ 
+    selector: 'sp-cash-page', 
+    imports: [
+        CurrencyPipe, 
+        DatePipe, 
+        NgClass, 
+        MatButtonModule, 
+        MatCardModule, 
+        MatIconModule, 
+        MatProgressSpinnerModule, 
+        CashMovementsTableComponent
+    ], 
+    templateUrl: './cash-page.component.html', 
+    styleUrl: './cash-page.component.scss', 
+    changeDetection: ChangeDetectionStrategy.OnPush 
+})
+export class CashPageComponent {
+    private readonly api = inject(CashService); 
+    private readonly dialog = inject(MatDialog); 
+    private readonly notifications = inject(NotificationService); 
+    private readonly router = inject(Router); 
+    readonly auth = inject(AuthService); 
+    readonly session = signal<CashSession | null>(null); 
+    readonly movements = signal<CashMovement[]>([]); 
+    readonly loading = signal(true); 
+    readonly error = signal<string | null>(null); 
+    readonly noOpenSession = signal(false); 
+    
+    constructor() { this.load(); } 
+    
+    load(): void { 
+        this.loading.set(true); 
+        this.error.set(null); 
+        this.noOpenSession.set(false); 
+        this.api.current().pipe(
+            switchMap((session) => 
+                forkJoin({ session: [session], movements: this.api.movements(session.id) })),
+            finalize(() => this.loading.set(false)))
+            .subscribe({ 
+                next: ({ session, movements }) => { 
+                    this.session.set(session); 
+                    this.movements.set(movements); 
+                }, 
+                error: (error: HttpErrorResponse) => { 
+                    this.session.set(null); 
+                    this.movements.set([]); 
+                    const code = error.error?.errors?.[0]?.code; 
+                    if (error.status === 404 || code === 'OPEN_CASH_SESSION_NOT_FOUND') 
+                        this.noOpenSession.set(true); 
+                    else this.error.set('No fue posible cargar la caja actual.'); 
+                } 
+            }); 
+    } 
+    
+    open(): void { 
+        this.dialog.open(OpenCashFormComponent, { width: '480px', maxWidth: '95vw' }) 
+        .afterClosed().pipe(
+            switchMap((payload: OpenCashPayload | undefined) => 
+                payload ? this.api.open(payload) : []
+            ) 
+        ).subscribe({ 
+            next: (session) => { 
+                if (session) { 
+                    this.notifications.success('Caja abierta correctamente.'); 
+                    this.load(); 
+                } 
+            } 
+        }); 
+    } 
+    
+    movement(type: 'income' | 'expense'): void { 
+        const session = this.session(); 
+        if (!session || session.status !== 'open') return; 
+        this.dialog.open(CashMovementFormComponent, { width: '560px', maxWidth: '95vw', data: { type } }) 
+        .afterClosed().pipe(
+            switchMap((payload: CashMovementPayload | undefined) => 
+                payload ? this.api.movement(session.id, type, payload) : []
+            ) 
+        ).subscribe({ 
+            next: (movement) => { 
+                if (movement) { 
+                    this.notifications.success(type === 'income' ? 'Ingreso registrado correctamente.' : 'Egreso registrado correctamente.'); 
+                    this.load(); 
+                } 
+            } 
+        }); 
+    } 
+    
+    close(): void { 
+        const session = this.session(); 
+        if (!session || session.status !== 'open') return; 
+        this.dialog.open(CloseCashFormComponent, { width: '520px', maxWidth: '95vw', data: session }) 
+        .afterClosed().pipe(
+            switchMap((payload: CloseCashPayload | undefined) => 
+                payload ? this.api.close(session.id, payload) : []
+            ) 
+        ).subscribe({ 
+            next: (closed) => { 
+                if (closed) { 
+                    this.session.set(closed); 
+                    this.noOpenSession.set(false); 
+                    this.notifications.success('Caja cerrada correctamente.'); 
+                } 
+            } 
+        }); 
+    } 
+    history(): void { 
+        void this.router.navigate(['/cash/history']); 
+    }
+}

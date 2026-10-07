@@ -21,6 +21,7 @@ const repository = (overrides: Partial<CustomerRepository> = {}): CustomerReposi
   ...overrides,
 });
 const audit: CustomerAuditLogger = { record: jest.fn() };
+const userScope = { userId: 'actor-1', isAdmin: false };
 
 describe('casos de uso de clientes', () => {
   it('crea un cliente normalizando los campos y registra la auditoría', async () => {
@@ -30,7 +31,7 @@ describe('casos de uso de clientes', () => {
     }, 'actor-1');
 
     expect(result.id).toBe(data.id);
-    expect(customers.create).toHaveBeenCalledWith(expect.objectContaining({ documentNumber: '12345678', email: 'maria@example.com' }));
+    expect(customers.create).toHaveBeenCalledWith(expect.objectContaining({ documentNumber: '12345678', email: 'maria@example.com' }), 'actor-1');
     expect(audit.record).toHaveBeenCalledWith('customer.created', 'actor-1', data.id);
   });
 
@@ -40,19 +41,23 @@ describe('casos de uso de clientes', () => {
   });
 
   it('devuelve la página de clientes y su paginación', async () => {
-    const result = await new ListCustomersUseCase(repository()).execute({ page: 1, pageSize: 20, search: '  Qui ' });
+    const customers = repository();
+    const result = await new ListCustomersUseCase(customers).execute({ page: 1, pageSize: 20, search: '  Qui ' }, userScope);
     expect(result).toMatchObject({ items: [{ id: data.id }], pagination: { total: 1, totalPages: 1 } });
+    expect(customers.findPage).toHaveBeenCalledWith(expect.objectContaining({ search: 'Qui' }), userScope);
   });
 
   it('actualiza y cambia el estado conservando la auditoría', async () => {
     const customers = repository();
-    await new UpdateCustomerUseCase(customers, audit).execute(data.id, { ...data, address: 'Jr. Lima 456' }, 'actor-1');
-    await new SetCustomerStatusUseCase(customers, audit).execute(data.id, false, 'actor-1');
+    await new UpdateCustomerUseCase(customers, audit).execute(data.id, { ...data, address: 'Jr. Lima 456' }, 'actor-1', false);
+    await new SetCustomerStatusUseCase(customers, audit).execute(data.id, false, 'actor-1', false);
+    expect(customers.update).toHaveBeenCalledWith(data.id, expect.any(Object), userScope);
+    expect(customers.updateStatus).toHaveBeenCalledWith(data.id, false, userScope);
     expect(audit.record).toHaveBeenCalledWith('customer.updated', 'actor-1', data.id);
     expect(audit.record).toHaveBeenCalledWith('customer.status_changed', 'actor-1', data.id);
   });
 
   it('informa 404 al solicitar un cliente inexistente', async () => {
-    await expect(new GetCustomerUseCase(repository({ findById: jest.fn().mockResolvedValue(null) })).execute(data.id)).rejects.toMatchObject<AppError>({ statusCode: 404 });
+    await expect(new GetCustomerUseCase(repository({ findById: jest.fn().mockResolvedValue(null) })).execute(data.id, userScope)).rejects.toMatchObject<AppError>({ statusCode: 404 });
   });
 });

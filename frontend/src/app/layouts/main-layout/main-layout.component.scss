@@ -107,7 +107,7 @@
     min-height: 64px;
     padding: .35rem .35rem calc(.35rem + env(safe-area-inset-bottom));
     border-top: 1px solid var(--sp-border);
-    background: rgba(255, 255, 255, .98);
+    background: var(--sp-surface);
     box-shadow: 0 -3px 14px rgb(30 50 90 / 8%);
   }
 

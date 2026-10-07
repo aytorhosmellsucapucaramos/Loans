@@ -1,13 +1,13 @@
 import { AppError, notFound } from '../../../shared/errors/app-error.js';
 import type { LoanCollateralRepository } from '../domain/loan-collateral-repository.js';
-import type { LoanRepository } from '../domain/loan-repository.js';
+import type { LoanAccessScope, LoanRepository } from '../domain/loan-repository.js';
 import type { LoanAuditLogger } from '../domain/loan-audit-logger.js';
 
 export class ListLoanCollateralUseCase {
   constructor(private readonly loans: LoanRepository, private readonly collateral: LoanCollateralRepository) {}
 
-  async execute(loanId: string) {
-    if (!await this.loans.findById(loanId)) throw notFound('Préstamo');
+  async execute(loanId: string, scope: LoanAccessScope) {
+    if (!await this.loans.findById(loanId, scope)) throw notFound('Préstamo');
     return (await this.collateral.findByLoanId(loanId)).map((item) => item.data);
   }
 }
@@ -15,8 +15,8 @@ export class ListLoanCollateralUseCase {
 export class ReturnLoanCollateralUseCase {
   constructor(private readonly loans: LoanRepository, private readonly collateral: LoanCollateralRepository, private readonly audit: LoanAuditLogger) {}
 
-  async execute(loanId: string, collateralId: string, actorId: string) {
-    const loan = await this.loans.findById(loanId);
+  async execute(loanId: string, collateralId: string, actorId: string, scope: LoanAccessScope) {
+    const loan = await this.loans.findById(loanId, scope);
     if (!loan) throw notFound('Préstamo');
     if (loan.data.status !== 'paid') {
       throw new AppError(422, 'COLLATERAL_RETURN_REQUIRES_PAID_LOAN', 'La garantía solo puede devolverse cuando el préstamo esté pagado.');

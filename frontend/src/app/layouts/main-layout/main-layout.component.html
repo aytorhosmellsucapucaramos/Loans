@@ -1,6 +1,7 @@
 <div class="app-shell">
   <mat-toolbar color="primary" class="topbar">
     <span class="toolbar-spacer"></span>
+    <button mat-icon-button (click)="theme.toggle()" [attr.aria-label]="theme.isDark() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'" [title]="theme.isDark() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"><mat-icon>{{ theme.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon></button>
     @if (auth.user$ | async; as user) { <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span> }
     <button mat-icon-button (click)="logout()" aria-label="Cerrar sesión"><mat-icon>logout</mat-icon></button>
   </mat-toolbar>

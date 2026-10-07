@@ -6,8 +6,9 @@ import * as payments from './004-payments.js';
 import * as cash from './005-cash.js';
 import * as audit from './006-audit.js';
 import * as loanCollateral from './007-loan-collateral.js';
+import * as customerOwnership from './008-customer-ownership.js';
 
-const migrations = [initialAuth, customers, loansInstallments, payments, cash, audit, loanCollateral];
+const migrations = [initialAuth, customers, loansInstallments, payments, cash, audit, loanCollateral, customerOwnership];
 
 const run = async (): Promise<void> => {
   await pool.query(`

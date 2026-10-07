@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
 
 import { Customer, type CustomerData, type DocumentType } from '../domain/customer.js';
-import type { CreateCustomerInput, CustomerListCriteria, CustomerPage, CustomerRepository, UpdateCustomerInput } from '../domain/customer-repository.js';
+import type { CreateCustomerInput, CustomerAccessScope, CustomerListCriteria, CustomerPage, CustomerRepository, UpdateCustomerInput } from '../domain/customer-repository.js';
 
 type CustomerRow = {
   id: string; document_type: DocumentType; document_number: string; first_name: string; last_name: string;
@@ -25,17 +25,19 @@ const mapRow = (row: CustomerRow): Customer => new Customer({
 export class PostgresCustomerRepository implements CustomerRepository {
   constructor(private readonly database: Pool) {}
 
-  async create(input: CreateCustomerInput): Promise<Customer> {
+  async create(input: CreateCustomerInput, userId: string): Promise<Customer> {
     const result = await this.database.query<CustomerRow>(
-      `INSERT INTO customers (document_type, document_number, first_name, last_name, phone, email, address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [input.documentType, input.documentNumber, input.firstName, input.lastName, input.phone, input.email ?? null, input.address],
+      `INSERT INTO customers (document_type, document_number, first_name, last_name, phone, email, address, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [input.documentType, input.documentNumber, input.firstName, input.lastName, input.phone, input.email ?? null, input.address, userId],
     );
     return mapRow(result.rows[0]!);
   }
 
-  async findById(id: string): Promise<Customer | null> {
-    const result = await this.database.query<CustomerRow>('SELECT * FROM customers WHERE id = $1 LIMIT 1', [id]);
+  async findById(id: string, scope?: CustomerAccessScope): Promise<Customer | null> {
+    const ownerFilter = scope && !scope.isAdmin ? ' AND user_id = $2' : '';
+    const values = ownerFilter ? [id, scope!.userId] : [id];
+    const result = await this.database.query<CustomerRow>(`SELECT * FROM customers WHERE id = $1${ownerFilter} LIMIT 1`, values);
     return result.rows[0] ? mapRow(result.rows[0]) : null;
   }
 
@@ -48,42 +50,48 @@ export class PostgresCustomerRepository implements CustomerRepository {
     return result.rows[0] ? mapRow(result.rows[0]) : null;
   }
 
-  async findPage(criteria: CustomerListCriteria): Promise<CustomerPage> {
+  async findPage(criteria: CustomerListCriteria, scope: CustomerAccessScope): Promise<CustomerPage> {
     const where: string[] = [];
     const values: unknown[] = [];
     const add = (expression: string, value: unknown): void => { values.push(value); where.push(`${expression} $${values.length}`); };
+    if (!scope.isAdmin) add('c.user_id =', scope.userId);
     if (criteria.search) {
       values.push(`%${criteria.search}%`);
       const position = values.length;
-      where.push(`(first_name ILIKE $${position} OR last_name ILIKE $${position} OR document_number ILIKE $${position})`);
+      where.push(`(c.first_name ILIKE $${position} OR c.last_name ILIKE $${position} OR c.document_number ILIKE $${position})`);
     }
-    if (criteria.isActive !== undefined) add('is_active =', criteria.isActive);
+    if (criteria.isActive !== undefined) add('c.is_active =', criteria.isActive);
     const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const offset = (criteria.page - 1) * criteria.pageSize;
     const [itemsResult, countResult] = await Promise.all([
       this.database.query<CustomerRow>(
-        `SELECT * FROM customers ${condition} ORDER BY last_name ASC, first_name ASC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+        `SELECT c.* FROM customers c ${condition} ORDER BY c.created_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
         [...values, criteria.pageSize, offset],
       ),
-      this.database.query<{ total: string }>(`SELECT COUNT(*)::text AS total FROM customers ${condition}`, values),
+      this.database.query<{ total: string }>(`SELECT COUNT(*)::text AS total FROM customers c ${condition}`, values),
     ]);
     const total = Number(countResult.rows[0]?.total ?? 0);
     return { items: itemsResult.rows.map(mapRow), total, page: criteria.page, pageSize: criteria.pageSize, totalPages: Math.ceil(total / criteria.pageSize) };
   }
 
-  async update(id: string, input: UpdateCustomerInput): Promise<Customer | null> {
+  async update(id: string, input: UpdateCustomerInput, scope: CustomerAccessScope): Promise<Customer | null> {
+    const ownerFilter = scope.isAdmin ? '' : ' AND user_id = $9';
+    const values = [input.documentType, input.documentNumber, input.firstName, input.lastName, input.phone, input.email ?? null, input.address, id];
+    if (!scope.isAdmin) values.push(scope.userId);
     const result = await this.database.query<CustomerRow>(
       `UPDATE customers
        SET document_type = $1, document_number = $2, first_name = $3, last_name = $4, phone = $5, email = $6, address = $7, updated_at = NOW()
-       WHERE id = $8 RETURNING *`,
-      [input.documentType, input.documentNumber, input.firstName, input.lastName, input.phone, input.email ?? null, input.address, id],
+       WHERE id = $8${ownerFilter} RETURNING *`, values,
     );
     return result.rows[0] ? mapRow(result.rows[0]) : null;
   }
 
-  async updateStatus(id: string, isActive: boolean): Promise<Customer | null> {
+  async updateStatus(id: string, isActive: boolean, scope: CustomerAccessScope): Promise<Customer | null> {
+    const ownerFilter = scope.isAdmin ? '' : ' AND user_id = $3';
+    const values: unknown[] = [isActive, id];
+    if (!scope.isAdmin) values.push(scope.userId);
     const result = await this.database.query<CustomerRow>(
-      'UPDATE customers SET is_active = $1, updated_at = NOW() WHERE id = $2 RETURNING *', [isActive, id],
+      `UPDATE customers SET is_active = $1, updated_at = NOW() WHERE id = $2${ownerFilter} RETURNING *`, values,
     );
     return result.rows[0] ? mapRow(result.rows[0]) : null;
   }

@@ -2,7 +2,7 @@ import type { Pool, PoolClient } from 'pg';
 
 import type { NewInstallment } from '../../installments/domain/installment.js';
 import type { NewLoanCollateralInput } from '../domain/loan-collateral.js';
-import type { PersistedLoanInput, LoanListCriteria, LoanPage, LoanRepository } from '../domain/loan-repository.js';
+import type { PersistedLoanInput, LoanAccessScope, LoanListCriteria, LoanPage, LoanRepository } from '../domain/loan-repository.js';
 import { Loan, type LoanData, type LoanStatus } from '../domain/loan.js';
 
 type LoanRow = {
@@ -48,19 +48,22 @@ export class PostgresLoanRepository implements LoanRepository {
     }
   }
 
-  async findById(id: string): Promise<Loan | null> {
+  async findById(id: string, scope?: LoanAccessScope): Promise<Loan | null> {
+    const ownership = scope && !scope.isAdmin ? ' AND c.user_id = $2' : '';
     const result = await this.database.query<LoanRow>(
       `SELECT l.*, c.first_name AS customer_first_name, c.last_name AS customer_last_name,
         c.document_type AS customer_document_type, c.document_number AS customer_document_number
-       FROM loans l JOIN customers c ON c.id = l.customer_id WHERE l.id = $1 LIMIT 1`, [id],
+       FROM loans l JOIN customers c ON c.id = l.customer_id WHERE l.id = $1${ownership} LIMIT 1`,
+      scope && !scope.isAdmin ? [id, scope.userId] : [id],
     );
     return result.rows[0] ? mapRow(result.rows[0]) : null;
   }
 
-  async findPage(criteria: LoanListCriteria): Promise<LoanPage> {
+  async findPage(criteria: LoanListCriteria, scope: LoanAccessScope): Promise<LoanPage> {
     const where: string[] = [];
     const values: unknown[] = [];
     const add = (expression: string, value: unknown): void => { values.push(value); where.push(`${expression} $${values.length}`); };
+    if (!scope.isAdmin) add('c.user_id =', scope.userId);
     if (criteria.customerId) add('l.customer_id =', criteria.customerId);
     if (criteria.status) add('l.status =', criteria.status);
     if (criteria.search) {
@@ -78,8 +81,10 @@ export class PostgresLoanRepository implements LoanRepository {
     return { items: items.rows.map(mapRow), total, page: criteria.page, pageSize: criteria.pageSize, totalPages: Math.ceil(total / criteria.pageSize) };
   }
 
-  async updateStatus(id: string, status: LoanStatus): Promise<Loan | null> {
-    const result = await this.database.query<LoanRow>('UPDATE loans SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *', [status, id]);
+  async updateStatus(id: string, status: LoanStatus, scope: LoanAccessScope): Promise<Loan | null> {
+    const ownership = scope.isAdmin ? '' : ' AND EXISTS (SELECT 1 FROM customers c WHERE c.id = loans.customer_id AND c.user_id = $3)';
+    const values = scope.isAdmin ? [status, id] : [status, id, scope.userId];
+    const result = await this.database.query<LoanRow>(`UPDATE loans SET status = $1, updated_at = NOW() WHERE id = $2${ownership} RETURNING *`, values);
     return result.rows[0] ? mapRow(result.rows[0]) : null;
   }
 

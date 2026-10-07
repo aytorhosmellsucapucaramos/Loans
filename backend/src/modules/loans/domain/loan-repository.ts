@@ -30,12 +30,13 @@ export type LoanListCriteria = {
   status?: LoanStatus;
   search?: string;
 };
+export type LoanAccessScope = { userId: string; isAdmin: boolean };
 
 export type LoanPage = { items: Loan[]; total: number; page: number; pageSize: number; totalPages: number };
 
 export interface LoanRepository {
   createWithInstallments(input: PersistedLoanInput, installments: NewInstallment[], collateralItems?: NewLoanCollateralInput[]): Promise<Loan>;
-  findById(id: string): Promise<Loan | null>;
-  findPage(criteria: LoanListCriteria): Promise<LoanPage>;
-  updateStatus(id: string, status: LoanStatus): Promise<Loan | null>;
+  findById(id: string, scope?: LoanAccessScope): Promise<Loan | null>;
+  findPage(criteria: LoanListCriteria, scope: LoanAccessScope): Promise<LoanPage>;
+  updateStatus(id: string, status: LoanStatus, scope: LoanAccessScope): Promise<Loan | null>;
 }

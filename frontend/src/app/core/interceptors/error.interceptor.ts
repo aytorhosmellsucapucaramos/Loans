@@ -24,13 +24,13 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const isSafeRead = request.method === 'GET';
   const response = isSafeRead
     ? next(request).pipe(
-      timeout({ first: 15000 }),
+      timeout({ first: 10000 }),
       retry({
         count: 2,
         delay: (error, attempt) => {
           if (error.status !== 0 && error.name !== 'TimeoutError') return throwError(() => error);
           if (attempt === 1) notifications.warning('Estamos despertando el servidor. Espera unos segundos…');
-          return timer(attempt * 1500);
+          return timer(attempt * 1000);
         },
       }),
     )
@@ -42,7 +42,8 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
         auth.logout(false);
         void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
       }
-      notifications.error(message);
+      const code = error.error?.errors?.[0]?.code;
+      if (!(error.status === 404 && code === 'OPEN_CASH_SESSION_NOT_FOUND')) notifications.error(message);
       return throwError(() => error);
     }),
   );

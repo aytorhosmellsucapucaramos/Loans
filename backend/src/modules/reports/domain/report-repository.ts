@@ -3,6 +3,7 @@ import type { CashSessionStatus } from '../../cash/domain/cash-session.js';
 
 export type DateRange = { fromDate?: string; toDate?: string };
 export type PageCriteria = { page: number; pageSize: number };
+export type ReportAccessScope = { userId: string; isAdmin: boolean };
 export type LoanReportCriteria = DateRange & PageCriteria & { customerId?: string; status?: LoanStatus };
 export type InstallmentReportCriteria = DateRange & PageCriteria & { status?: 'pending' | 'paid' | 'overdue' };
 export type CollectionReportCriteria = DateRange & PageCriteria;
@@ -22,4 +23,4 @@ export type CollectionReport = { totals: { paymentCount: number; totalAmount: st
 export type CashReportItem = { id: string; openedAt: Date; closedAt: Date | null; status: CashSessionStatus; openingAmount: string; incomeAmount: string; expenseAmount: string; reversalAmount: string; expectedBalance: string; differenceAmount: string | null };
 export type CashReport = { totals: { incomeAmount: string; expenseAmount: string; reversalAmount: string; expectedBalance: string; closingDifference: string }; page: ReportPage<CashReportItem> };
 
-export interface ReportRepository { getSummary(): Promise<SystemSummary>; getLoans(criteria: LoanReportCriteria): Promise<LoanReport>; getInstallments(criteria: InstallmentReportCriteria): Promise<InstallmentReport>; getCollections(criteria: CollectionReportCriteria): Promise<CollectionReport>; getCash(criteria: CashReportCriteria): Promise<CashReport>; }
+export interface ReportRepository { getSummary(scope: ReportAccessScope): Promise<SystemSummary>; getLoans(criteria: LoanReportCriteria, scope: ReportAccessScope): Promise<LoanReport>; getInstallments(criteria: InstallmentReportCriteria, scope: ReportAccessScope): Promise<InstallmentReport>; getCollections(criteria: CollectionReportCriteria, scope: ReportAccessScope): Promise<CollectionReport>; getCash(criteria: CashReportCriteria, scope: ReportAccessScope): Promise<CashReport>; }

@@ -11,6 +11,7 @@ export type CreateCustomerInput = {
 };
 
 export type UpdateCustomerInput = CreateCustomerInput;
+export type CustomerAccessScope = { userId: string; isAdmin: boolean };
 
 export type CustomerListCriteria = {
   page: number;
@@ -28,10 +29,10 @@ export type CustomerPage = {
 };
 
 export interface CustomerRepository {
-  create(input: CreateCustomerInput): Promise<Customer>;
-  findById(id: string): Promise<Customer | null>;
+  create(input: CreateCustomerInput, userId: string): Promise<Customer>;
+  findById(id: string, scope?: CustomerAccessScope): Promise<Customer | null>;
   findByDocument(documentType: DocumentType, documentNumber: string, excludeId?: string): Promise<Customer | null>;
-  findPage(criteria: CustomerListCriteria): Promise<CustomerPage>;
-  update(id: string, input: UpdateCustomerInput): Promise<Customer | null>;
-  updateStatus(id: string, isActive: boolean): Promise<Customer | null>;
+  findPage(criteria: CustomerListCriteria, scope: CustomerAccessScope): Promise<CustomerPage>;
+  update(id: string, input: UpdateCustomerInput, scope: CustomerAccessScope): Promise<Customer | null>;
+  updateStatus(id: string, isActive: boolean, scope: CustomerAccessScope): Promise<Customer | null>;
 }

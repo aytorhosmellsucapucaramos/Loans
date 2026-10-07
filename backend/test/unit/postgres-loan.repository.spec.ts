@@ -6,6 +6,22 @@ const collateral = { description: 'Televisor', category: 'Electrónica', physica
 const row = { id: '44444444-4444-4444-4444-444444444444', customer_id: loanInput.customerId, principal_amount: '1000.00', interest_rate: '10.0000', interest_type: 'simple', payment_frequency: 'monthly', installment_count: 1, disbursement_date: '2026-01-01', first_installment_date: '2026-02-01', total_amount: '1100.00', status: 'active', observations: null, created_at: new Date(), updated_at: new Date() };
 
 describe('PostgresLoanRepository', () => {
+  it('filtra por propietario en listado y detalle para usuario estándar', async () => {
+    const queries: Array<{ sql: string; values?: unknown[] }> = [];
+    const database = { query: jest.fn(async (sql: string, values?: unknown[]) => { queries.push({ sql, values }); return sql.includes('COUNT(*)') ? { rows: [{ total: '0' }] } : { rows: [] }; }) };
+    const repository = new PostgresLoanRepository(database as never);
+    const scope = { userId: 'owner-1', isAdmin: false };
+
+    await repository.findPage({ page: 1, pageSize: 20 }, scope);
+    await repository.findById('loan-1', scope);
+
+    expect(queries[0]?.sql).toContain('c.user_id = $1');
+    expect(queries[2]?.sql).toContain('c.user_id = $2');
+    expect(queries[0]?.values).toEqual(['owner-1', 20, 0]);
+    expect(queries[2]?.values).toEqual(['loan-1', 'owner-1']);
+    expect(queries[0]?.sql).toContain('JOIN customers c ON c.id = l.customer_id');
+  });
+
   it('confirma préstamo y cuotas dentro de una transacción', async () => {
     const client = { query: jest.fn().mockImplementation(async (sql: string) => sql.includes('INSERT INTO loans') ? { rows: [row] } : { rows: [] }), release: jest.fn() };
     const repository = new PostgresLoanRepository({ connect: jest.fn().mockResolvedValue(client) } as never);

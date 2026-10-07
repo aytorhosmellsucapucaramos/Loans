@@ -16,6 +16,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PaymentFormComponent } from '../../components/payment-form/payment-form.component';
 import { PaymentsTableComponent } from '../../components/payments-table/payments-table.component';
+import { PaymentCashSessionService } from '../../services/payment-cash-session.service';
 import type { CreatePaymentPayload, PaymentStatus } from '../../models/payment.model';
 import { PaymentsService } from '../../services/payments.service';
 
@@ -31,6 +32,7 @@ export class PaymentsPageComponent {
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   private readonly notifications = inject(NotificationService);
+  private readonly cashSession = inject(PaymentCashSessionService);
   readonly auth = inject(AuthService);
   readonly filters = inject(FormBuilder).nonNullable.group({ loanId: '', installmentId: '', status: '' as PaymentStatus | '' });
   readonly payments = signal<import('../../models/payment.model').Payment[]>([]);
@@ -57,7 +59,8 @@ export class PaymentsPageComponent {
   view(id: string): void { void this.router.navigate(['/payments', id]); }
 
   create(): void {
-    this.dialog.open(PaymentFormComponent, { width: '640px', maxWidth: '95vw' }).afterClosed().pipe(
+    this.cashSession.ensureOpen().pipe(
+      switchMap((isOpen) => isOpen ? this.dialog.open(PaymentFormComponent, { width: '640px', maxWidth: '95vw' }).afterClosed() : []),
       switchMap((payload: CreatePaymentPayload | undefined) => payload ? this.api.create(payload) : []),
     ).subscribe({ next: (payment) => { if (payment) { this.notifications.success('Pago registrado correctamente.'); this.page.set(1); this.load(); } } });
   }

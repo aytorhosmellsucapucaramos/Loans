@@ -5,6 +5,7 @@ import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { MainLayoutComponent } from './main-layout.component';
 
 @Component({ standalone: true, template: '' })
@@ -25,6 +26,7 @@ describe('MainLayoutComponent mobile navigation', () => {
         provideRouter([{ path: 'reports', component: RouteStubComponent }]),
         { provide: BreakpointObserver, useValue: { observe: () => of({ matches: true, breakpoints: {} }) } },
         { provide: AuthService, useValue: auth },
+        { provide: ThemeService, useValue: { isDark: () => false, toggle: jasmine.createSpy('toggle') } },
       ],
     }).compileComponents();
 
@@ -36,6 +38,10 @@ describe('MainLayoutComponent mobile navigation', () => {
     expect(component.moreNavigation().map((item) => item.path)).toEqual(['/cash', '/reports']);
     expect(component.moreNavigation().some((item) => item.path === '/audit' || item.path === '/users')).toBeFalse();
     expect(fixture.nativeElement.querySelector('.mobile-nav')).not.toBeNull();
+    const themeToggle = fixture.nativeElement.querySelector('[aria-label="Cambiar a modo oscuro"]') as HTMLButtonElement;
+    expect(themeToggle).not.toBeNull();
+    themeToggle.click();
+    expect(TestBed.inject(ThemeService).toggle).toHaveBeenCalled();
     expect(fixture.nativeElement.querySelectorAll('.mobile-nav a').length).toBe(2);
 
     (fixture.nativeElement.querySelector('.more-button') as HTMLButtonElement).click();
@@ -60,6 +66,7 @@ describe('MainLayoutComponent mobile navigation', () => {
         provideRouter([{ path: 'reports', component: RouteStubComponent }]),
         { provide: BreakpointObserver, useValue: { observe: () => of({ matches: false, breakpoints: {} }) } },
         { provide: AuthService, useValue: auth },
+        { provide: ThemeService, useValue: { isDark: () => true, toggle: jasmine.createSpy('toggle') } },
       ],
     }).compileComponents();
 
@@ -73,5 +80,6 @@ describe('MainLayoutComponent mobile navigation', () => {
     expect(sidebarText).toContain('Clientes');
     expect(sidebarText).not.toContain('Usuarios');
     expect(sidebarText).not.toContain('Auditoría');
+    expect(fixture.nativeElement.querySelector('[aria-label="Cambiar a modo claro"]')).not.toBeNull();
   });
 });

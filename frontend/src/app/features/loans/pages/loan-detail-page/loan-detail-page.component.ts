@@ -18,6 +18,7 @@ import { PaymentFormComponent } from '../../../payments/components/payment-form/
 import { PaymentsTableComponent } from '../../../payments/components/payments-table/payments-table.component';
 import type { CreatePaymentPayload, Payment } from '../../../payments/models/payment.model';
 import { PaymentsService } from '../../../payments/services/payments.service';
+import { PaymentCashSessionService } from '../../../payments/services/payment-cash-session.service';
 import type { Installment } from '../../models/installment.model';
 import type { LoanCollateralItem, LoanDetail, LoanStatus } from '../../models/loan.model';
 import { LoansService } from '../../services/loans.service';
@@ -34,6 +35,7 @@ export class LoanDetailPageComponent {
   private readonly api = inject(LoansService);
   private readonly customersApi = inject(CustomersService);
   private readonly paymentsApi = inject(PaymentsService);
+  private readonly cashSession = inject(PaymentCashSessionService);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   readonly auth = inject(AuthService);
@@ -72,7 +74,8 @@ export class LoanDetailPageComponent {
   registerPayment(installment: Installment): void {
     const loan = this.loan();
     if (!loan) return;
-    this.dialog.open(PaymentFormComponent, { width: '640px', maxWidth: '95vw', data: { loan, installment } }).afterClosed().pipe(
+    this.cashSession.ensureOpen().pipe(
+      switchMap((isOpen) => isOpen ? this.dialog.open(PaymentFormComponent, { width: '640px', maxWidth: '95vw', data: { loan, installment } }).afterClosed() : []),
       switchMap((payload: CreatePaymentPayload | undefined) => payload ? this.paymentsApi.create(payload) : []),
     ).subscribe({ next: (payment) => { if (payment) { this.notifications.success('Pago registrado correctamente.'); this.load(); } } });
   }

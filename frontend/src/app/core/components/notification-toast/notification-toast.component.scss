@@ -42,7 +42,7 @@
 
 .toast__title { font-size: 0.9rem; font-weight: 700; line-height: 1.25; }
 .toast__message { font-size: 0.875rem; line-height: 1.4; overflow-wrap: anywhere; }
-.toast__close { flex: 0 0 auto; color: #424653; }
+.toast__close { flex: 0 0 auto; color: var(--sp-text-soft); }
 
 @media (max-width: 480px) {
   .toast { gap: 0.65rem; padding: 0.7rem 0.65rem; }

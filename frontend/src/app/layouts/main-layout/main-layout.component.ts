@@ -11,6 +11,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { map } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
+import { ThemeService } from '../../core/services/theme.service';
 
 type NavigationItem = { label: string; icon: string; path: string; permission?: string };
 
@@ -25,6 +26,7 @@ export class MainLayoutComponent {
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly router = inject(Router);
   readonly auth = inject(AuthService);
+  readonly theme = inject(ThemeService);
   readonly isHandset = toSignal(this.breakpointObserver.observe('(max-width: 767px)').pipe(map((result) => result.matches)), { initialValue: false });
   readonly navigation: NavigationItem[] = [
     { label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },

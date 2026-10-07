@@ -3,7 +3,7 @@ import type { Pool, PoolClient } from 'pg';
 import { AppError, notFound } from '../../../shared/errors/app-error.js';
 import type { PaymentData, PaymentMethod, PaymentStatus } from '../domain/payment.js';
 import { Payment } from '../domain/payment.js';
-import type { PaymentListCriteria, PaymentPage, PaymentRepository, RegisterPaymentInput } from '../domain/payment-repository.js';
+import type { PaymentAccessScope, PaymentListCriteria, PaymentPage, PaymentRepository, RegisterPaymentInput } from '../domain/payment-repository.js';
 import type { CashPaymentMovementGateway } from '../../cash/infrastructure/cash-payment-movement.gateway.js';
 
 type PaymentRow = {
@@ -27,11 +27,11 @@ const mapRow = (row: PaymentRow): Payment => new Payment({
 export class PostgresPaymentRepository implements PaymentRepository {
   constructor(private readonly database: Pool, private readonly cash: CashPaymentMovementGateway) {}
 
-  async register(input: RegisterPaymentInput): Promise<Payment> {
+  async register(input: RegisterPaymentInput, scope: PaymentAccessScope): Promise<Payment> {
     const client = await this.database.connect();
     try {
       await client.query('BEGIN');
-      const loan = await this.lockLoan(client, input.loanId);
+      const loan = await this.lockLoan(client, input.loanId, scope);
       if (loan.status === 'cancelled') throw new AppError(422, 'LOAN_CANCELLED', 'No se pueden registrar pagos en un préstamo cancelado.');
       const installment = await this.lockInstallment(client, input.installmentId);
       if (installment.loan_id !== loan.id) throw new AppError(422, 'INSTALLMENT_LOAN_MISMATCH', 'La cuota no pertenece al préstamo indicado.');
@@ -64,46 +64,55 @@ export class PostgresPaymentRepository implements PaymentRepository {
     }
   }
 
-  async findById(id: string): Promise<Payment | null> {
-    const result = await this.database.query<PaymentRow>('SELECT * FROM payments WHERE id = $1 LIMIT 1', [id]);
+  async findById(id: string, scope: PaymentAccessScope): Promise<Payment | null> {
+    const ownership = scope.isAdmin ? '' : ' AND c.user_id = $2';
+    const values = scope.isAdmin ? [id] : [id, scope.userId];
+    const result = await this.database.query<PaymentRow>(`SELECT p.* FROM payments p JOIN loans l ON l.id = p.loan_id JOIN customers c ON c.id = l.customer_id WHERE p.id = $1${ownership} LIMIT 1`, values);
     return result.rows[0] ? mapRow(result.rows[0]) : null;
   }
 
-  async findPage(criteria: PaymentListCriteria): Promise<PaymentPage> {
+  async findPage(criteria: PaymentListCriteria, scope: PaymentAccessScope): Promise<PaymentPage> {
     const where: string[] = []; const values: unknown[] = [];
     const add = (column: string, value: unknown): void => { values.push(value); where.push(`${column} = $${values.length}`); };
-    if (criteria.loanId) add('loan_id', criteria.loanId);
-    if (criteria.installmentId) add('installment_id', criteria.installmentId);
-    if (criteria.status) add('status', criteria.status);
+    if (!scope.isAdmin) add('c.user_id', scope.userId);
+    if (criteria.loanId) add('p.loan_id', criteria.loanId);
+    if (criteria.installmentId) add('p.installment_id', criteria.installmentId);
+    if (criteria.status) add('p.status', criteria.status);
     const condition = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const offset = (criteria.page - 1) * criteria.pageSize;
     const [items, count] = await Promise.all([
-      this.database.query<PaymentRow>(`SELECT * FROM payments ${condition} ORDER BY created_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`, [...values, criteria.pageSize, offset]),
-      this.database.query<{ total: string }>(`SELECT COUNT(*)::text AS total FROM payments ${condition}`, values),
+      this.database.query<PaymentRow>(`SELECT p.* FROM payments p JOIN loans l ON l.id = p.loan_id JOIN customers c ON c.id = l.customer_id ${condition} ORDER BY p.created_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`, [...values, criteria.pageSize, offset]),
+      this.database.query<{ total: string }>(`SELECT COUNT(*)::text AS total FROM payments p JOIN loans l ON l.id = p.loan_id JOIN customers c ON c.id = l.customer_id ${condition}`, values),
     ]);
     const total = Number(count.rows[0]?.total ?? 0);
     return { items: items.rows.map(mapRow), total, page: criteria.page, pageSize: criteria.pageSize, totalPages: Math.ceil(total / criteria.pageSize) };
   }
 
-  async findByLoanId(loanId: string): Promise<Payment[]> {
-    const result = await this.database.query<PaymentRow>('SELECT * FROM payments WHERE loan_id = $1 ORDER BY payment_date DESC, created_at DESC', [loanId]);
+  async findByLoanId(loanId: string, scope: PaymentAccessScope): Promise<Payment[]> {
+    const ownership = scope.isAdmin ? '' : ' AND c.user_id = $2';
+    const values = scope.isAdmin ? [loanId] : [loanId, scope.userId];
+    const result = await this.database.query<PaymentRow>(`SELECT p.* FROM payments p JOIN loans l ON l.id = p.loan_id JOIN customers c ON c.id = l.customer_id WHERE p.loan_id = $1${ownership} ORDER BY p.payment_date DESC, p.created_at DESC`, values);
     return result.rows.map(mapRow);
   }
 
-  async findByInstallmentId(installmentId: string): Promise<Payment[]> {
-    const result = await this.database.query<PaymentRow>('SELECT * FROM payments WHERE installment_id = $1 ORDER BY payment_date DESC, created_at DESC', [installmentId]);
+  async findByInstallmentId(installmentId: string, scope: PaymentAccessScope): Promise<Payment[]> {
+    const ownership = scope.isAdmin ? '' : ' AND c.user_id = $2';
+    const values = scope.isAdmin ? [installmentId] : [installmentId, scope.userId];
+    const result = await this.database.query<PaymentRow>(`SELECT p.* FROM payments p JOIN loans l ON l.id = p.loan_id JOIN customers c ON c.id = l.customer_id WHERE p.installment_id = $1${ownership} ORDER BY p.payment_date DESC, p.created_at DESC`, values);
     return result.rows.map(mapRow);
   }
 
-  async cancel(id: string, cancelledByUserId: string): Promise<Payment> {
+  async cancel(id: string, cancelledByUserId: string, scope: PaymentAccessScope): Promise<Payment> {
     const client = await this.database.connect();
     try {
       await client.query('BEGIN');
-      const paymentResult = await client.query<PaymentRow>('SELECT * FROM payments WHERE id = $1 FOR UPDATE', [id]);
+      const ownership = scope.isAdmin ? '' : ' AND c.user_id = $2';
+      const paymentValues = scope.isAdmin ? [id] : [id, scope.userId];
+      const paymentResult = await client.query<PaymentRow>(`SELECT p.* FROM payments p JOIN loans l ON l.id = p.loan_id JOIN customers c ON c.id = l.customer_id WHERE p.id = $1${ownership} FOR UPDATE OF p`, paymentValues);
       const payment = paymentResult.rows[0];
       if (!payment) throw notFound('Pago');
       if (payment.status === 'cancelled') throw new AppError(422, 'PAYMENT_ALREADY_CANCELLED', 'El pago ya fue anulado.');
-      const loan = await this.lockLoan(client, payment.loan_id);
+      const loan = await this.lockLoan(client, payment.loan_id, scope);
       const installment = await this.lockInstallment(client, payment.installment_id);
       if (payment.payment_method === 'cash') await this.cash.registerPaymentReversal(client, { paymentId: payment.id, amount: payment.amount, userId: cancelledByUserId });
       await client.query("UPDATE payments SET status = 'cancelled' WHERE id = $1", [id]);
@@ -123,8 +132,10 @@ export class PostgresPaymentRepository implements PaymentRepository {
     }
   }
 
-  private async lockLoan(client: PoolClient, id: string): Promise<LoanRow> {
-    const result = await client.query<LoanRow>('SELECT id, status FROM loans WHERE id = $1 FOR UPDATE', [id]);
+  private async lockLoan(client: PoolClient, id: string, scope: PaymentAccessScope): Promise<LoanRow> {
+    const ownership = scope.isAdmin ? '' : ' AND c.user_id = $2';
+    const values = scope.isAdmin ? [id] : [id, scope.userId];
+    const result = await client.query<LoanRow>(`SELECT l.id, l.status FROM loans l JOIN customers c ON c.id = l.customer_id WHERE l.id = $1${ownership} FOR UPDATE OF l`, values);
     if (!result.rows[0]) throw new AppError(404, 'LOAN_NOT_FOUND', 'El préstamo no fue encontrado.');
     return result.rows[0];
   }

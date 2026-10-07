@@ -11,8 +11,8 @@ const preview = { customerId: loan.customerId, principalAmount: '1000.00', inter
 
 const collateralItem = { id: '77777777-7777-4777-8777-777777777777', loanId: loan.id, description: 'Televisor', category: 'Electrónica', brand: null, model: null, serialNumber: null, physicalCondition: 'Buen estado', estimatedValue: '500.00', notes: null, receivedAt: '2026-09-15', custodyStatus: 'in_custody', returnedAt: null, returnedBy: null };
 
-const buildApp = (permissions = ['loans.read', 'loans.create', 'loans.update', 'installments.read']) => {
-  const user = new User('user-1', 'ana@example.com', 'Ana', 'Pérez', 'hash', true, new Date(), new Date(), ['admin'], permissions);
+const buildApp = (permissions = ['loans.read', 'loans.create', 'loans.update', 'installments.read'], roles = ['admin']) => {
+  const user = new User('user-1', 'ana@example.com', 'Ana', 'Pérez', 'hash', true, new Date(), new Date(), roles, permissions);
   const container = {
     users: { findById: jest.fn().mockResolvedValue(user) }, tokenService: { verifyAccessToken: jest.fn().mockReturnValue({ userId: user.id }) },
     listLoans: { execute: jest.fn().mockResolvedValue({ items: [loan], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } }) },
@@ -39,7 +39,7 @@ describe('API HTTP de préstamos', () => {
     const response = await request(app).post('/api/loans/preview').set('Authorization', 'Bearer token').send(payload).expect(200);
 
     expect(response.body).toMatchObject({ success: true, data: { totalInterestAmount: '100.00', totalAmount: '1100.00', installments: expect.any(Array) }, errors: [] });
-    expect(container.previewLoan.execute).toHaveBeenCalledWith(expect.objectContaining(payload));
+    expect(container.previewLoan.execute).toHaveBeenCalledWith(expect.objectContaining(payload), { userId: 'user-1', isAdmin: true });
     expect(container.createLoan.execute).not.toHaveBeenCalled();
   });
   it('deniega vista previa sin permiso loans.create', async () => {
@@ -55,7 +55,7 @@ describe('API HTTP de préstamos', () => {
     expect(list.body.data[0]).toMatchObject({ description: 'Televisor', custodyStatus: 'in_custody' });
     const returned = await request(app).patch(`/api/loans/${loan.id}/collateral/${collateralItem.id}/return`).set('Authorization', 'Bearer token').send({}).expect(200);
     expect(returned.body.data).toMatchObject({ custodyStatus: 'returned', returnedBy: { firstName: 'Ana' } });
-    expect(container.returnLoanCollateral.execute).toHaveBeenCalledWith(loan.id, collateralItem.id, 'user-1');
+    expect(container.returnLoanCollateral.execute).toHaveBeenCalledWith(loan.id, collateralItem.id, 'user-1', { userId: 'user-1', isAdmin: true });
   });
   it('protege consulta y devolución de garantías con loans.read y loans.update', async () => {
     await request(buildApp(['loans.update']).app).get(`/api/loans/${loan.id}/collateral`).set('Authorization', 'Bearer token').expect(403);
@@ -63,5 +63,17 @@ describe('API HTTP de préstamos', () => {
   });
   it('deniega creación sin permiso', async () => {
     await request(buildApp(['loans.read']).app).post('/api/loans').set('Authorization', 'Bearer token').send(payload).expect(403);
+  });
+
+  it('pasa alcance de propietario para un usuario estándar en préstamos y cuotas', async () => {
+    const { app, container } = buildApp(undefined, ['user']);
+    await request(app).get('/api/loans').set('Authorization', 'Bearer token').expect(200);
+    await request(app).get(`/api/loans/${loan.id}`).set('Authorization', 'Bearer token').expect(200);
+    await request(app).get(`/api/loans/${loan.id}/installments`).set('Authorization', 'Bearer token').expect(200);
+    await request(app).get(`/api/installments/${installment.id}`).set('Authorization', 'Bearer token').expect(200);
+    expect(container.listLoans.execute).toHaveBeenCalledWith(expect.any(Object), { userId: 'user-1', isAdmin: false });
+    expect(container.getLoan.execute).toHaveBeenCalledWith(loan.id, { userId: 'user-1', isAdmin: false });
+    expect(container.listLoanInstallments.execute).toHaveBeenCalledWith(loan.id, { userId: 'user-1', isAdmin: false });
+    expect(container.getInstallment.execute).toHaveBeenCalledWith(installment.id, { userId: 'user-1', isAdmin: false });
   });
 });

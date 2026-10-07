@@ -18,16 +18,17 @@ export type PaymentListCriteria = {
   installmentId?: string;
   status?: PaymentStatus;
 };
+export type PaymentAccessScope = { userId: string; isAdmin: boolean };
 
 export type PaymentPage = { items: Payment[]; total: number; page: number; pageSize: number; totalPages: number };
 
 export interface PaymentRepository {
-  register(input: RegisterPaymentInput): Promise<Payment>;
-  findById(id: string): Promise<Payment | null>;
-  findPage(criteria: PaymentListCriteria): Promise<PaymentPage>;
-  findByLoanId(loanId: string): Promise<Payment[]>;
-  findByInstallmentId(installmentId: string): Promise<Payment[]>;
-  cancel(id: string, cancelledByUserId: string): Promise<Payment>;
+  register(input: RegisterPaymentInput, scope: PaymentAccessScope): Promise<Payment>;
+  findById(id: string, scope: PaymentAccessScope): Promise<Payment | null>;
+  findPage(criteria: PaymentListCriteria, scope: PaymentAccessScope): Promise<PaymentPage>;
+  findByLoanId(loanId: string, scope: PaymentAccessScope): Promise<Payment[]>;
+  findByInstallmentId(installmentId: string, scope: PaymentAccessScope): Promise<Payment[]>;
+  cancel(id: string, cancelledByUserId: string, scope: PaymentAccessScope): Promise<Payment>;
 }
 
 export type { PaymentData };

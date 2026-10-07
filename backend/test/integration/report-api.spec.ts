@@ -10,9 +10,9 @@ const installmentReport = {
   page: { items: [{ id: 'installment-1', loanId: 'loan-1', customerName: 'María Quispe', installmentNumber: 1, dueDate: '2026-09-20', principalAmount: '20.00', interestAmount: '5.00', scheduledAmount: '25.00', outstandingAmount: '25.00', status: 'overdue' }], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } },
 };
 
-const buildApp = (permissions = ['reports.read'], installmentReportResult = page) => {
-  const user = new User('user-1', 'ana@example.com', 'Ana', 'Pérez', 'hash', true, new Date(), new Date(), ['admin'], permissions);
-  return createApp({
+const buildApp = (permissions = ['reports.read'], installmentReportResult = page, roles = ['admin']) => {
+  const user = new User('user-1', 'ana@example.com', 'Ana', 'Pérez', 'hash', true, new Date(), new Date(), roles, permissions);
+  const container = {
     users: { findById: jest.fn().mockResolvedValue(user) },
     tokenService: { verifyAccessToken: jest.fn().mockReturnValue({ userId: user.id }) },
     getReportSummary: { execute: jest.fn().mockResolvedValue(summary) },
@@ -20,17 +20,18 @@ const buildApp = (permissions = ['reports.read'], installmentReportResult = page
     getInstallmentReport: { execute: jest.fn().mockResolvedValue(installmentReportResult) },
     getCollectionReport: { execute: jest.fn().mockResolvedValue(page) },
     getCashReport: { execute: jest.fn().mockResolvedValue(page) },
-  } as unknown as AppContainer);
+  } as unknown as AppContainer;
+  return { app: createApp(container), container };
 };
 
 describe('API HTTP de reportes', () => {
   it('protege los reportes con autenticación y permiso', async () => {
-    await request(buildApp()).get('/api/reports/summary').expect(401);
-    await request(buildApp([])).get('/api/reports/summary').set('Authorization', 'Bearer token').expect(403);
+    await request(buildApp().app).get('/api/reports/summary').expect(401);
+    await request(buildApp([]).app).get('/api/reports/summary').set('Authorization', 'Bearer token').expect(403);
   });
 
   it('devuelve resumen y reportes paginados con el formato estándar', async () => {
-    const app = buildApp();
+    const { app } = buildApp();
     await request(app).get('/api/reports/summary').set('Authorization', 'Bearer token').expect(200).expect((response) => expect(response.body).toMatchObject({ success: true, data: { totalCollected: '20.00' }, errors: [] }));
     await request(app).get('/api/reports/loans?page=1&pageSize=20&status=active').set('Authorization', 'Bearer token').expect(200).expect((response) => expect(response.body.data.page.pagination).toMatchObject({ page: 1 }));
     await request(app).get('/api/reports/installments').set('Authorization', 'Bearer token').expect(200);
@@ -39,7 +40,7 @@ describe('API HTTP de reportes', () => {
   });
 
   it('devuelve nombre de cliente para la agenda sin exponer campos adicionales sensibles', async () => {
-    await request(buildApp(['reports.read'], installmentReport))
+    await request(buildApp(['reports.read'], installmentReport).app)
       .get('/api/reports/installments?status=overdue')
       .set('Authorization', 'Bearer token')
       .expect(200)
@@ -50,9 +51,19 @@ describe('API HTTP de reportes', () => {
   });
 
   it('valida fechas y rangos', async () => {
-    const app = buildApp();
+    const { app } = buildApp();
     await request(app).get('/api/reports/loans?fromDate=2026-02-02&toDate=2026-02-01').set('Authorization', 'Bearer token').expect(400);
     await request(app).get('/api/reports/collections?fromDate=no-fecha').set('Authorization', 'Bearer token').expect(400);
     await request(app).get('/api/reports/cash?fromDate=2026-02-31').set('Authorization', 'Bearer token').expect(400);
+  });
+
+  it('pasa alcance del propietario a resumen y reportes para usuario estándar', async () => {
+    const { app, container } = buildApp(undefined, page, ['user']);
+    await request(app).get('/api/reports/summary').set('Authorization', 'Bearer token').expect(200);
+    await request(app).get('/api/reports/installments').set('Authorization', 'Bearer token').expect(200);
+    await request(app).get('/api/reports/collections').set('Authorization', 'Bearer token').expect(200);
+    expect(container.getReportSummary.execute).toHaveBeenCalledWith({ userId: 'user-1', isAdmin: false });
+    expect(container.getInstallmentReport.execute).toHaveBeenCalledWith(expect.any(Object), { userId: 'user-1', isAdmin: false });
+    expect(container.getCollectionReport.execute).toHaveBeenCalledWith(expect.any(Object), { userId: 'user-1', isAdmin: false });
   });
 });

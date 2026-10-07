@@ -9,6 +9,7 @@ import { SimpleInterestStrategy } from '../../src/modules/interest/domain/simple
 
 const customer = (isActive = true) => new Customer({ id: 'customer-1', documentType: 'DNI', documentNumber: '12345678', firstName: 'Ana', lastName: 'Quispe', phone: '987654321', email: null, address: 'Av. Perú 123', isActive, createdAt: new Date(), updatedAt: new Date() });
 const input = { customerId: 'customer-1', principalAmount: '1000.00', interestRate: '10', interestType: 'simple' as const, paymentFrequency: 'monthly' as const, installmentCount: 4, disbursementDate: '2026-01-01', firstInstallmentDate: '2026-02-01' };
+const adminScope = { userId: 'actor-1', isAdmin: true };
 const collateral = { description: 'Televisor', category: 'Electrónica', brand: 'Marca', model: 'Modelo', serialNumber: 'SERIE-1', physicalCondition: 'Buen estado', estimatedValue: '500.00', receivedAt: '2026-01-01' };
 
 describe('CreateLoanUseCase', () => {
@@ -26,7 +27,7 @@ describe('CreateLoanUseCase', () => {
   });
 
   it('valida el cliente y persiste préstamo y cronograma mediante una sola operación atómica', async () => {
-    const result = await useCase.execute(input, 'actor-1');
+    const result = await useCase.execute(input, 'actor-1', adminScope);
     expect(result.totalAmount).toBe('1100.00');
     expect(loans.createWithInstallments).toHaveBeenCalledWith(expect.objectContaining({ totalAmount: '1100.00' }), expect.any(Array), []);
     expect((loans.createWithInstallments as jest.Mock).mock.calls[0]?.[1]).toHaveLength(4);
@@ -34,7 +35,7 @@ describe('CreateLoanUseCase', () => {
   });
 
   it('persiste varios objetos en garantía junto al préstamo y sus cuotas', async () => {
-    await useCase.execute({ ...input, collateralItems: [collateral, { ...collateral, description: 'Laptop', estimatedValue: 900 }] }, 'actor-1');
+    await useCase.execute({ ...input, collateralItems: [collateral, { ...collateral, description: 'Laptop', estimatedValue: 900 }] }, 'actor-1', adminScope);
 
     expect(loans.createWithInstallments).toHaveBeenCalledWith(expect.any(Object), expect.any(Array), [
       expect.objectContaining({ description: 'Televisor', estimatedValue: '500.00' }),
@@ -43,12 +44,12 @@ describe('CreateLoanUseCase', () => {
   });
 
   it('permite crear préstamo sin objetos en garantía', async () => {
-    await expect(useCase.execute(input, 'actor-1')).resolves.toMatchObject({ id: 'loan-1' });
+    await expect(useCase.execute(input, 'actor-1', adminScope)).resolves.toMatchObject({ id: 'loan-1' });
     expect(loans.createWithInstallments).toHaveBeenCalledWith(expect.any(Object), expect.any(Array), []);
   });
 
   it('previsualiza importes y vencimientos iguales al registro sin escribir ni auditar', async () => {
-    const preview = await previewUseCase.execute(input);
+    const preview = await previewUseCase.execute(input, adminScope);
 
     expect(preview.totalInterestAmount).toBe('100.00');
     expect(preview.totalAmount).toBe('1100.00');
@@ -57,7 +58,7 @@ describe('CreateLoanUseCase', () => {
     expect(loans.createWithInstallments).not.toHaveBeenCalled();
     expect(audit.record).not.toHaveBeenCalled();
 
-    await useCase.execute(input, 'actor-1');
+    await useCase.execute(input, 'actor-1', adminScope);
     const [savedLoan, savedInstallments] = (loans.createWithInstallments as jest.Mock).mock.calls[0] as [Record<string, string>, Array<Record<string, unknown>>];
     expect(preview.totalAmount).toBe(savedLoan.totalAmount);
     expect(preview.totalInterestAmount).toBe((Number(savedLoan.totalAmount) - Number(savedLoan.principalAmount)).toFixed(2));
@@ -74,6 +75,6 @@ describe('CreateLoanUseCase', () => {
     ['valor de garantía con decimales inválidos', customer(), { ...input, collateralItems: [{ ...collateral, estimatedValue: '1.001' }] }, 'INVALID_COLLATERAL_VALUE'],
   ])('rechaza cliente o datos %s', async (_label, foundCustomer, invalidInput, code) => {
     (customers.findById as jest.Mock).mockResolvedValue(foundCustomer);
-    await expect(useCase.execute(invalidInput, 'actor-1')).rejects.toMatchObject<AppError>({ code });
+    await expect(useCase.execute(invalidInput, 'actor-1', adminScope)).rejects.toMatchObject<AppError>({ code });
   });
 });

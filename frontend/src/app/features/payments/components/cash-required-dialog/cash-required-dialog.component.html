@@ -1,0 +1,10 @@
+<h2 mat-dialog-title>Caja requerida</h2>
+<mat-dialog-content>
+  <p>No tienes una sesión de caja abierta. Es necesario abrir caja para registrar cobros en efectivo.</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancelar</button>
+  @if (data.canOpenCash) {
+    <button mat-flat-button color="primary" [mat-dialog-close]="true">Abrir caja ahora</button>
+  }
+</mat-dialog-actions>
